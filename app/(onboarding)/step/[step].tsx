@@ -5,7 +5,8 @@ import { useTheme } from '@/src/context/ThemeContext';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import React, { useEffect, useState, useMemo } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const QUESTIONS = [
   { id: 'nickname', question: "Wie dürfen wir dich heute nennen, Held?", placeholder: "Dein Nickname...", type: 'text' },
@@ -174,14 +175,14 @@ const stylesLight = StyleSheet.create({
   backButton: { padding: 8 },
   progressBarContainer: { flex: 1, height: 10, backgroundColor: '#F2F2F2', borderRadius: 5, marginHorizontal: 12, overflow: 'hidden' },
   progressBar: { height: '100%', backgroundColor: '#FF7F24', borderRadius: 5 },
-  stepText: { fontSize: 13, fontWeight: '900', color: '#AFAFAF', width: 35 },
+  stepText: { fontSize: 13, fontWeight: '900', fontFamily: 'System', color: '#AFAFAF', width: 35 },
   content: { padding: 24, paddingBottom: 100 },
-  questionSub: { fontSize: 18, fontWeight: '900', color: '#4B4B4B', marginBottom: 20, textAlign: 'center' },
-  input: { width: '100%', backgroundColor: '#F9F9F9', borderWidth: 2, borderColor: '#F2F2F2', borderRadius: 18, padding: 20, fontSize: 19, color: '#4B4B4B', marginTop: 10, fontWeight: '700' },
+  questionSub: { fontSize: 18, fontWeight: '900', fontFamily: 'System', color: '#4B4B4B', marginBottom: 20, textAlign: 'center' },
+  input: { width: '100%', backgroundColor: '#F9F9F9', borderWidth: 2, borderColor: '#F2F2F2', borderRadius: 18, padding: 20, fontSize: 19, fontFamily: 'System', color: '#4B4B4B', marginTop: 10, fontWeight: '700' },
   choiceContainer: { width: '100%', marginTop: 10 },
   choiceButton: { width: '100%', backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#F2F2F2', borderBottomWidth: 6, borderRadius: 20, padding: 18, marginBottom: 14 },
   choiceButtonSelected: { backgroundColor: '#FFF5EE', borderColor: '#FF7F24', borderBottomColor: '#CC5500' },
-  choiceText: { fontSize: 16, fontWeight: '900', color: '#4B4B4B', textAlign: 'center', letterSpacing: 1 },
+  choiceText: { fontSize: 16, fontWeight: '900', fontFamily: 'System', color: '#4B4B4B', textAlign: 'center', letterSpacing: 1 },
   choiceTextSelected: { color: '#FF7F24' },
   footer: { padding: 24, backgroundColor: '#FFFFFF', borderTopWidth: 2, borderTopColor: '#F2F2F2' },
 });
@@ -192,14 +193,14 @@ const stylesDark = StyleSheet.create({
   backButton: { padding: 8 },
   progressBarContainer: { flex: 1, height: 10, backgroundColor: '#1E293B', borderRadius: 5, marginHorizontal: 12, overflow: 'hidden' },
   progressBar: { height: '100%', backgroundColor: '#FF7F24', borderRadius: 5 },
-  stepText: { fontSize: 13, fontWeight: '900', color: '#64748B', width: 35 },
+  stepText: { fontSize: 13, fontWeight: '900', fontFamily: 'System', color: '#64748B', width: 35 },
   content: { padding: 24, paddingBottom: 100 },
-  questionSub: { fontSize: 18, fontWeight: '900', color: '#F1F5F9', marginBottom: 20, textAlign: 'center' },
-  input: { width: '100%', backgroundColor: '#1E293B', borderWidth: 2, borderColor: '#334155', borderRadius: 18, padding: 20, fontSize: 19, color: '#F1F5F9', marginTop: 10, fontWeight: '700' },
+  questionSub: { fontSize: 18, fontWeight: '900', fontFamily: 'System', color: '#F1F5F9', marginBottom: 20, textAlign: 'center' },
+  input: { width: '100%', backgroundColor: '#1E293B', borderWidth: 2, borderColor: '#334155', borderRadius: 18, padding: 20, fontSize: 19, fontFamily: 'System', color: '#F1F5F9', marginTop: 10, fontWeight: '700' },
   choiceContainer: { width: '100%', marginTop: 10 },
   choiceButton: { width: '100%', backgroundColor: '#1E293B', borderWidth: 2, borderColor: '#334155', borderBottomWidth: 6, borderRadius: 20, padding: 18, marginBottom: 14 },
   choiceButtonSelected: { backgroundColor: '#2D1B0E', borderColor: '#FF7F24', borderBottomColor: '#CC5500' },
-  choiceText: { fontSize: 16, fontWeight: '900', color: '#F1F5F9', textAlign: 'center', letterSpacing: 1 },
+  choiceText: { fontSize: 16, fontWeight: '900', fontFamily: 'System', color: '#F1F5F9', textAlign: 'center', letterSpacing: 1 },
   choiceTextSelected: { color: '#FF7F24' },
   footer: { padding: 24, backgroundColor: '#0F172A', borderTopWidth: 2, borderTopColor: '#334155' },
 });

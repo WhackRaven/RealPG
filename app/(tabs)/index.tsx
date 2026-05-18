@@ -31,7 +31,6 @@ import {
     Image,
     Platform,
     Pressable,
-    SafeAreaView,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -40,9 +39,9 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-const { height } = Dimensions.get('window');
-
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 export default function Dashboard() {
   const router = useRouter();
   const { isDark, isNeon, colors } = useTheme();
@@ -60,7 +59,9 @@ export default function Dashboard() {
     collectDailyBonus,
     dailyBonusCollected,
     aiMode,
-    hasActiveBuff
+    hasActiveBuff,
+    aiCooldownUntil,
+    startAICooldown
   } = useAppStore();
   
   const [profile, setProfile] = useState<any>(null);
@@ -75,11 +76,26 @@ export default function Dashboard() {
   const [customGoal, setCustomGoal] = useState("");
   const [showDailyBonus, setShowDailyBonus] = useState(false);
   const [bonusAmount, setBonusAmount] = useState({ coins: 0, xp: 0 });
+  const [countdown, setCountdown] = useState(0);
   
   const safeStats = stats || { level: 1, xp: 0, coins: 10, xpToNextLevel: 100, title: "Anfänger", streak: 0, questsCompleted: 0 };
   const progressPercent = (safeStats.xp / safeStats.xpToNextLevel) * 100;
 
   const s = isNeon ? stylesNeon : (isDark ? stylesDark : stylesLight);
+
+  useEffect(() => {
+    if (!aiCooldownUntil) {
+      setCountdown(0);
+      return;
+    }
+    const updateTimer = () => {
+      const rem = Math.max(0, Math.ceil((aiCooldownUntil - Date.now()) / 1000));
+      setCountdown(rem);
+    };
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [aiCooldownUntil]);
 
   useEffect(() => {
     async function loadData() {
@@ -136,7 +152,7 @@ export default function Dashboard() {
       setBonusAmount(bonus);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setShowDailyBonus(false);
-      Alert.alert("Täglicher Bonus! 🎁", `Du hast ${bonus.coins} Münzen und ${bonus.xp} XP erhalten!`);
+      useAppStore.getState().showAlert("Täglicher Bonus! 🎁", `Du hast ${bonus.coins} Blitze und ${bonus.xp} XP erhalten!`);
     }
   };
 
@@ -156,13 +172,13 @@ export default function Dashboard() {
   const handleRollQuests = async () => {
     const rollCost = 50;
     if (safeStats.coins < rollCost) {
-      Alert.alert("Nicht genug Münzen!", `Du brauchst ${rollCost} Münzen um 5 neue Quests zu würfeln.`);
+      useAppStore.getState().showAlert("Nicht genug Blitze!", `Du brauchst ${rollCost} Blitze um 5 neue Quests zu würfeln.`);
       return;
     }
     
-    Alert.alert(
+    useAppStore.getState().showAlert(
       "Quests neu würfeln",
-      "Das kostet 50 Münzen. Alle aktuellen Quests werden durch 5 neue ersetzt.",
+      "Das kostet 50 Blitze. Alle aktuellen Quests werden durch 5 neue ersetzt.",
       [
         { text: "Abbrechen", style: "cancel" },
         { 
@@ -180,7 +196,7 @@ export default function Dashboard() {
 
   const handleReplaceQuest = async (index: number) => {
     if (safeStats.coins < 10) {
-      Alert.alert("Nicht genug Münzen!", "Du brauchst 10 Münzen um eine Quest zu ersetzen.");
+      useAppStore.getState().showAlert("Nicht genug Blitze!", "Du brauchst 10 Blitze um eine Quest zu ersetzen.");
       return;
     }
     const success = await replaceQuest(index);
@@ -191,7 +207,7 @@ export default function Dashboard() {
 
   const handleReplaceAiQuest = async (index: number) => {
     if (safeStats.coins < 50) {
-      Alert.alert("Nicht genug Münzen!", "Du brauchst 50 Münzen um eine KI-Quest zu ersetzen.");
+      useAppStore.getState().showAlert("Nicht genug Blitze!", "Du brauchst 50 Blitze um eine KI-Quest zu ersetzen.");
       return;
     }
     const success = await replaceAiQuest(index);
@@ -201,18 +217,19 @@ export default function Dashboard() {
   };
 
   const handleGenerateCustomQuest = async () => {
-    if (aiMode === 'off' || aiMode === null) {
-      Alert.alert("Nicht verfügbar", "KI-Quests sind deaktiviert. Aktiviere sie in den Einstellungen.");
+    if (aiCooldownUntil && Date.now() < aiCooldownUntil) {
+      const remaining = Math.ceil((aiCooldownUntil - Date.now()) / 1000);
+      useAppStore.getState().showAlert("KI Cooldown", `Bitte warte noch ${remaining} Sekunden, bevor du die KI erneut nutzt.`);
       return;
     }
     if (!customGoal.trim()) {
-      Alert.alert("Fehler", "Bitte beschreibe, was du erreichen möchtest!");
+      useAppStore.getState().showAlert("Fehler", "Bitte beschreibe, was du erreichen möchtest!");
       return;
     }
     
     if (aiQuests.length >= 5) {
       setShowCustomModal(false);
-      Alert.alert(
+      useAppStore.getState().showAlert(
         "KI-Quest ersetzen",
         "Du hast bereits 5 KI-Quests. Welche möchtest du ersetzen?",
         [
@@ -229,16 +246,17 @@ export default function Dashboard() {
     }
     
     if (safeStats.coins < 50) {
-      Alert.alert("Nicht genug Münzen!", "Du brauchst 50 Münzen für eine KI-Quest.");
+      useAppStore.getState().showAlert("Nicht genug Blitze!", "Du brauchst 50 Blitze für eine KI-Quest.");
       return;
     }
     
     setShowCustomModal(false);
+    startAICooldown();
     const quest = await generateCustomQuest(customGoal);
     if (quest) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
-      Alert.alert("Fehler", "Die KI konnte keine Quest erstellen.");
+      useAppStore.getState().showAlert("Fehler", "Die KI konnte keine Quest erstellen.");
     }
     setCustomGoal("");
   };
@@ -270,7 +288,7 @@ export default function Dashboard() {
 
   const handleComplete = async () => {
     if (!selectedQuest || !image) {
-      Alert.alert("Fehler", "Bitte mach zuerst ein Foto von deinem Beweis!");
+      useAppStore.getState().showAlert("Fehler", "Bitte mach zuerst ein Foto von deinem Beweis!");
       return;
     }
     
@@ -286,11 +304,11 @@ export default function Dashboard() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        Alert.alert("KI Check", result.feedback);
+        useAppStore.getState().showAlert("KI Check", result.feedback);
       }
     } catch (error) {
       setIsValidating(false);
-      Alert.alert("Quest erledigt!", "Deine Quest wurde erfolgreich abgeschlossen!");
+      useAppStore.getState().showAlert("Quest erledigt!", "Deine Quest wurde erfolgreich abgeschlossen!");
       setShowSuccess(true);
     }
   };
@@ -392,7 +410,7 @@ export default function Dashboard() {
             </View>
             <View style={s.dailyBonusContent}>
               <Text style={s.dailyBonusTitle}>TÄGLICHER BONUS!</Text>
-              <Text style={s.dailyBonusDesc}>+20 Münzen & +30 XP</Text>
+              <Text style={s.dailyBonusDesc}>+20 Blitze & +30 XP</Text>
             </View>
             <View style={s.dailyBonusButton}>
               <Text style={s.dailyBonusButtonText}>HOLEN</Text>
@@ -405,13 +423,24 @@ export default function Dashboard() {
             <TouchableOpacity style={s.questBtn} onPress={handleRollQuests}>
               <Dice5 color={isNeon ? "#00F0FF" : "#FF7F24"} size={28} />
               <Text style={s.questBtnText}>5 NEUE QUESTS</Text>
-              <Text style={s.questBtnCost}>50 🪙</Text>
+              <Text style={s.questBtnCost}>50 ⚡</Text>
             </TouchableOpacity>
             {aiMode !== 'off' && (
-              <TouchableOpacity style={[s.questBtn, s.questBtnAi]} onPress={() => setShowCustomModal(true)}>
+              <TouchableOpacity 
+                style={[s.questBtn, s.questBtnAi, countdown > 0 && { opacity: 0.6 }]} 
+                onPress={() => {
+                  if (countdown > 0) { 
+                    useAppStore.getState().showAlert("KI Cooldown", `Bitte warte noch ${countdown} Sekunden.`); 
+                    return; 
+                  } 
+                  setShowCustomModal(true);
+                }}
+              >
                 <Sparkles color={isNeon ? "#FF00E4" : "#9B59B6"} size={28} />
-                <Text style={[s.questBtnText, { color: isNeon ? "#FF00E4" : '#9B59B6' }]}>KI QUEST</Text>
-                <Text style={[s.questBtnCost, { color: isNeon ? "#FF00E4" : '#9B59B6' }]}>50 🪙</Text>
+                <Text style={[s.questBtnText, { color: isNeon ? "#FF00E4" : '#9B59B6' }]}>
+                  {countdown > 0 ? `COOLDOWN (${countdown}s)` : 'KI QUEST'}
+                </Text>
+                <Text style={[s.questBtnCost, { color: isNeon ? "#FF00E4" : '#9B59B6' }]}>50 ⚡</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -427,7 +456,7 @@ export default function Dashboard() {
                   style={s.replaceBtn}
                   onPress={() => handleReplaceQuest(index)}
                 >
-                  <Text style={s.replaceBtnText}>ERSETZEN (10 🪙)</Text>
+                  <Text style={s.replaceBtnText}>ERSETZEN (10 ⚡)</Text>
                 </TouchableOpacity>
               </View>
             ))}
@@ -444,7 +473,7 @@ export default function Dashboard() {
                   style={[s.replaceBtn, s.replaceBtnAi]}
                   onPress={() => handleReplaceAiQuest(index)}
                 >
-                  <Text style={[s.replaceBtnText, { color: isNeon ? "#FF00E4" : '#9B59B6' }]}>ERSETZEN (50 🪙)</Text>
+                  <Text style={[s.replaceBtnText, { color: isNeon ? "#FF00E4" : '#9B59B6' }]}>ERSETZEN (50 ⚡)</Text>
                 </TouchableOpacity>
               </View>
             ))}
@@ -580,7 +609,7 @@ function MiniStat({ icon, value, label, onPress, isDark, isNeon }: { icon: any, 
 const stylesLight = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   content: { padding: 20 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16 },
   dailyBonusCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF8E7', borderRadius: 20, padding: 16, marginBottom: 24, borderWidth: 2, borderColor: '#FFD700', borderBottomWidth: 6 },
   dailyBonusIcon: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#FFE066', justifyContent: 'center', alignItems: 'center', marginRight: 14 },
   dailyBonusContent: { flex: 1 },
@@ -588,9 +617,9 @@ const stylesLight = StyleSheet.create({
   dailyBonusDesc: { fontSize: 13, fontWeight: '800', color: '#DAA520', marginTop: 2 },
   dailyBonusButton: { backgroundColor: '#FFD700', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14 },
   dailyBonusButtonText: { fontSize: 12, fontWeight: '900', color: '#8B6914' },
-  greeting: { fontSize: 13, color: '#AFAFAF', fontWeight: '900', letterSpacing: 1 },
+  greeting: { fontSize: 13, color: '#AFAFAF', fontWeight: '900', letterSpacing: 1, fontFamily: 'System' },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  titleText: { fontSize: 34, fontWeight: '900', color: '#4B4B4B' },
+  titleText: { fontSize: 34, fontWeight: '900', fontFamily: 'System', color: '#4B4B4B' },
   settingsButton: { width: 56, height: 56, borderRadius: 18, backgroundColor: '#fff', borderBottomWidth: 5, borderColor: '#F2F2F2', justifyContent: 'center', alignItems: 'center', borderWidth: 2 },
   safeStatsCardContainer: { marginBottom: 24 },
   safeStatsCardShadow: { position: 'absolute', bottom: -6, left: 2, right: 2, top: 10, backgroundColor: '#F2F2F2', borderRadius: 28 },
@@ -599,7 +628,7 @@ const stylesLight = StyleSheet.create({
   levelCircle: { width: 66, height: 66, borderRadius: 33, justifyContent: 'center', alignItems: 'center', borderBottomWidth: 5, borderBottomColor: '#CC5500', borderWidth: 3, borderColor: '#fff' },
   levelValue: { color: '#FFFFFF', fontSize: 26, fontWeight: '900' },
   levelInfo: { flex: 1, marginLeft: 16 },
-  levelLabel: { color: '#4B4B4B', fontSize: 20, fontWeight: '900' },
+  levelLabel: { color: '#4B4B4B', fontSize: 20, fontWeight: '900', fontFamily: 'System' },
   xpText: { color: '#AFAFAF', fontSize: 14, fontWeight: '800', marginTop: 2 },
   coinBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9F9F9', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 18, gap: 8, borderWidth: 2, borderColor: '#F2F2F2' },
   coinValue: { color: '#FF7F24', fontSize: 20, fontWeight: '900' },
@@ -618,26 +647,26 @@ const stylesLight = StyleSheet.create({
   questButtonsRow: { flexDirection: 'row', gap: 14, marginBottom: 16 },
   questBtn: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 20, padding: 16, alignItems: 'center', borderWidth: 2, borderColor: '#F2F2F2', borderBottomWidth: 6 },
   questBtnAi: { backgroundColor: '#F5E6F8', borderColor: '#9B59B6' },
-  questBtnText: { fontSize: 12, fontWeight: '900', color: '#FF7F24', marginTop: 8 },
-  questBtnCost: { fontSize: 11, fontWeight: '700', color: '#FF7F24', marginTop: 4 },
-  sectionTitle: { fontSize: 14, fontWeight: '800', color: '#AFAFAF', letterSpacing: 1, marginBottom: 12 },
+  questBtnText: { fontSize: 12, fontWeight: '900', fontFamily: 'System', color: '#FF7F24', marginTop: 8 },
+  questBtnCost: { fontSize: 11, fontWeight: '700', fontFamily: 'System', color: '#FF7F24', marginTop: 4 },
+  sectionTitle: { fontSize: 14, fontWeight: '800', fontFamily: 'System', color: '#AFAFAF', letterSpacing: 1, marginBottom: 12 },
   replaceBtn: { backgroundColor: '#F0F0F0', padding: 10, borderRadius: 12, alignItems: 'center', marginBottom: 16, marginTop: -8 },
   replaceBtnAi: { backgroundColor: '#F5E6F8' },
-  replaceBtnText: { fontSize: 12, fontWeight: '800', color: '#FF7F24' },
+  replaceBtnText: { fontSize: 12, fontWeight: '800', fontFamily: 'System', color: '#FF7F24' },
   emptyQuests: { alignItems: 'center', padding: 40 },
-  emptyQuestsText: { fontSize: 18, fontWeight: '800', color: '#AFAFAF', marginBottom: 8 },
-  emptyQuestsSubtext: { fontSize: 14, color: '#AFAFAF', textAlign: 'center' },
+  emptyQuestsText: { fontSize: 18, fontWeight: '800', fontFamily: 'System', color: '#AFAFAF', marginBottom: 8 },
+  emptyQuestsSubtext: { fontSize: 14, fontWeight: '600', fontFamily: 'System', color: '#AFAFAF', textAlign: 'center' },
   modalWrapper: { backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 36, borderTopRightRadius: 36, padding: 26, maxHeight: height * 0.92, borderTopWidth: 2, borderColor: '#F2F2F2' },
+  modalContent: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 36, borderTopRightRadius: 36, padding: 26, maxHeight: SCREEN_HEIGHT * 0.92, borderTopWidth: 2, borderColor: '#F2F2F2' },
   modalHandle: { width: 45, height: 6, backgroundColor: '#F2F2F2', borderRadius: 3, alignSelf: 'center', marginBottom: 18 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 },
   modalHeadTitle: { fontSize: 15, fontWeight: '900', color: '#AFAFAF', letterSpacing: 1 },
-  modalQuestTitle: { fontSize: 28, fontWeight: '900', color: '#4B4B4B' },
+  modalQuestTitle: { fontSize: 28, fontWeight: '900', fontFamily: 'System', color: '#4B4B4B' },
   modalRewards: { flexDirection: 'row', gap: 14, marginTop: 18, marginBottom: 28 },
   modalRewardItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9F9F9', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 18, gap: 10, borderWidth: 2, borderColor: '#F2F2F2' },
   modalRewardText: { color: '#4B4B4B', fontWeight: '900', fontSize: 17 },
   bubble: { borderWidth: 2, borderColor: '#F2F2F2', borderRadius: 24, padding: 22, marginBottom: 32, backgroundColor: '#fff' },
-  modalDescription: { fontSize: 17, color: '#4B4B4B', lineHeight: 26, fontWeight: '700' },
+  modalDescription: { fontSize: 17, fontFamily: 'System', color: '#4B4B4B', lineHeight: 26, fontWeight: '700' },
   proofSection: { backgroundColor: '#F9F9F9', borderRadius: 28, padding: 26, marginBottom: 34, borderWidth: 2, borderColor: '#F2F2F2' },
   proofTitle: { fontSize: 15, fontWeight: '900', color: '#AFAFAF', marginBottom: 18, textAlign: 'center', letterSpacing: 0.5 },
   imageSelectorRow: { flexDirection: 'row', gap: 14 },
@@ -649,26 +678,26 @@ const stylesLight = StyleSheet.create({
   successOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', padding: 32, zIndex: 9999 },
   successCard: { width: '100%', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.98)', borderRadius: 40, padding: 36, borderWidth: 3, borderColor: '#F2F2F2', shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 20 },
   successIconCircle: { width: 120, height: 120, borderRadius: 60, justifyContent: 'center', alignItems: 'center', borderBottomWidth: 8, borderBottomColor: '#CC5500', borderWidth: 4, borderColor: '#fff' },
-  successTitle: { fontSize: 32, fontWeight: '900', color: '#4B4B4B', marginTop: 24 },
-  successFeedback: { fontSize: 18, color: '#AFAFAF', textAlign: 'center', marginTop: 16, fontWeight: '700', lineHeight: 26 },
+  successTitle: { fontSize: 32, fontWeight: '900', fontFamily: 'System', color: '#4B4B4B', marginTop: 24 },
+  successFeedback: { fontSize: 18, fontFamily: 'System', color: '#AFAFAF', textAlign: 'center', marginTop: 16, fontWeight: '700', lineHeight: 26 },
   successRewards: { flexDirection: 'row', gap: 30, marginTop: 30 },
   successRewardItem: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#F9F9F9', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 18, borderWidth: 2, borderColor: '#F2F2F2' },
   successRewardValue: { fontSize: 18, fontWeight: '900', color: '#4B4B4B' },
   customModalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 24 },
   customModalContent: { backgroundColor: '#FFFFFF', borderRadius: 28, padding: 24, borderWidth: 2, borderColor: '#F2F2F2' },
-  customModalTitle: { fontSize: 20, fontWeight: '900', color: '#4B4B4B', textAlign: 'center', marginBottom: 16 },
-  customInput: { backgroundColor: '#F9F9F9', borderRadius: 16, padding: 16, fontSize: 16, borderWidth: 2, borderColor: '#F2F2F2', marginBottom: 16, minHeight: 100, textAlignVertical: 'top' },
+  customModalTitle: { fontSize: 20, fontWeight: '900', fontFamily: 'System', color: '#4B4B4B', textAlign: 'center', marginBottom: 16 },
+  customInput: { backgroundColor: '#F9F9F9', borderRadius: 16, padding: 16, fontSize: 16, fontFamily: 'System', borderWidth: 2, borderColor: '#F2F2F2', marginBottom: 16, minHeight: 100, textAlignVertical: 'top' },
+  customModalBtnText: { fontSize: 16, fontWeight: '900', fontFamily: 'System' },
   customModalButtons: { flexDirection: 'row', gap: 12 },
   customModalBtn: { flex: 1, paddingVertical: 14, borderRadius: 16, alignItems: 'center' },
   customModalBtnCancel: { backgroundColor: '#F2F2F2' },
-  customModalBtnConfirm: { backgroundColor: '#9B59B6' },
-  customModalBtnText: { fontSize: 16, fontWeight: '900' },
+  customModalBtnConfirm: { backgroundColor: '#4B4B4B' },
 });
 
 const stylesDark = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0F172A' },
   content: { padding: 20 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16 },
   dailyBonusCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#2E1F00', borderRadius: 20, padding: 16, marginBottom: 24, borderWidth: 2, borderColor: '#FFD700', borderBottomWidth: 6 },
   dailyBonusIcon: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#4A3800', justifyContent: 'center', alignItems: 'center', marginRight: 14 },
   dailyBonusContent: { flex: 1 },
@@ -716,7 +745,7 @@ const stylesDark = StyleSheet.create({
   emptyQuestsText: { fontSize: 18, fontWeight: '800', color: '#94A3B8', marginBottom: 8 },
   emptyQuestsSubtext: { fontSize: 14, color: '#94A3B8', textAlign: 'center' },
   modalWrapper: { backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#1E293B', borderTopLeftRadius: 36, borderTopRightRadius: 36, padding: 26, maxHeight: height * 0.92, borderTopWidth: 2, borderColor: '#334155' },
+  modalContent: { backgroundColor: '#1E293B', borderTopLeftRadius: 36, borderTopRightRadius: 36, padding: 26, maxHeight: SCREEN_HEIGHT * 0.92, borderTopWidth: 2, borderColor: '#334155' },
   modalHandle: { width: 45, height: 6, backgroundColor: '#334155', borderRadius: 3, alignSelf: 'center', marginBottom: 18 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 },
   modalHeadTitle: { fontSize: 15, fontWeight: '900', color: '#94A3B8', letterSpacing: 1 },
@@ -756,7 +785,7 @@ const stylesDark = StyleSheet.create({
 const stylesNeon = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0D0221' },
   content: { padding: 20 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16 },
   dailyBonusCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#2D0054', borderRadius: 20, padding: 16, marginBottom: 24, borderWidth: 2, borderColor: '#FF00E4', borderBottomWidth: 6 },
   dailyBonusIcon: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#FF00E420', justifyContent: 'center', alignItems: 'center', marginRight: 14, borderWidth: 1, borderColor: '#FF00E4' },
   dailyBonusContent: { flex: 1 },
@@ -804,7 +833,7 @@ const stylesNeon = StyleSheet.create({
   emptyQuestsText: { fontSize: 18, fontWeight: '800', color: '#FF00E4', marginBottom: 8 },
   emptyQuestsSubtext: { fontSize: 14, color: '#00F0FF', textAlign: 'center' },
   modalWrapper: { backgroundColor: 'rgba(13,2,33,0.9)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#261447', borderTopLeftRadius: 36, borderTopRightRadius: 36, padding: 26, maxHeight: height * 0.92, borderTopWidth: 2, borderColor: '#FF00E4' },
+  modalContent: { backgroundColor: '#261447', borderTopLeftRadius: 36, borderTopRightRadius: 36, padding: 26, maxHeight: SCREEN_HEIGHT * 0.92, borderTopWidth: 2, borderColor: '#FF00E4' },
   modalHandle: { width: 45, height: 6, backgroundColor: '#FF00E4', borderRadius: 3, alignSelf: 'center', marginBottom: 18 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 },
   modalHeadTitle: { fontSize: 15, fontWeight: '900', color: '#FF00E4', letterSpacing: 2 },

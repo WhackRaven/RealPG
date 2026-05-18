@@ -14,7 +14,7 @@ export default function SecuritySettings() {
 
   const handleFeature = (feature: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert(
+    useAppStore.getState().showAlert(
       feature,
       "Diese Funktion ist in der aktuellen Version noch nicht verfügbar. Sie wird in einem zukünftigen Update verfügbar sein.",
       [{ text: "OK" }]

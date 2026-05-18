@@ -68,7 +68,7 @@ function getImage(expression: FoxExpression) {
 }
 
 export default function FoxMascot({ message, expression = 'idle', size = 100 }: FoxMascotProps) {
-  const { isDark } = useTheme();
+  const { isDark, isNeon } = useTheme();
   const [imageError, setImageError] = useState(false);
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const floatAnim = useRef(new Animated.Value(0)).current;
@@ -105,6 +105,10 @@ export default function FoxMascot({ message, expression = 'idle', size = 100 }: 
     }
   }, [message]);
 
+  const bubbleStyle = isNeon ? styles.bubbleNeon : (isDark ? styles.bubbleDark : {});
+  const tailStyle = isNeon ? styles.bubbleTailNeon : (isDark ? styles.bubbleTailDark : {});
+  const msgStyle = isNeon ? styles.messageNeon : (isDark ? styles.messageDark : {});
+
   return (
     <View style={styles.container}>
       <Animated.View style={{ opacity: opacityAnim, transform: [{ translateY: floatAnim }, { scale: scaleAnim }] }}>
@@ -130,10 +134,10 @@ export default function FoxMascot({ message, expression = 'idle', size = 100 }: 
             { transform: [{ scale: bubbleScaleAnim }], opacity: bubbleScaleAnim },
           ]}
         >
-          <View style={[styles.bubble, isDark && styles.bubbleDark]}>
-            <Text style={[styles.message, isDark && styles.messageDark]}>{message}</Text>
+          <View style={[styles.bubble, bubbleStyle]}>
+            <Text style={[styles.message, msgStyle]}>{message}</Text>
           </View>
-          <View style={[styles.bubbleTail, isDark && styles.bubbleTailDark]} />
+          <View style={[styles.bubbleTail, tailStyle]} />
         </Animated.View>
       )}
     </View>
@@ -202,6 +206,7 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: 15,
+    fontFamily: 'System',
     color: '#4B4B4B',
     fontWeight: '800',
     lineHeight: 20,
@@ -216,5 +221,21 @@ const styles = StyleSheet.create({
   },
   messageDark: {
     color: '#F1F5F9',
+  },
+  bubbleNeon: {
+    backgroundColor: '#261447',
+    borderColor: '#FF00E4',
+    shadowColor: '#FF00E4',
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+  },
+  bubbleTailNeon: {
+    backgroundColor: '#261447',
+    borderColor: '#FF00E4',
+  },
+  messageNeon: {
+    color: '#FFFFFF',
+    textShadowColor: '#00F0FF',
+    textShadowRadius: 3,
   },
 });

@@ -4,7 +4,8 @@ import { getUserProfile, saveUserProfile, UserProfile } from '@/src/services/db'
 import { useAppStore } from '@/src/store/useAppStore';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Summary() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -99,6 +100,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '800',
+    fontFamily: 'System',
     color: '#4B4B4B',
     textAlign: 'center',
     marginVertical: 10,
@@ -120,12 +122,14 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '700',
+    fontFamily: 'System',
     color: '#AFAFAF',
     textTransform: 'uppercase',
   },
   value: {
     fontSize: 18,
     fontWeight: '700',
+    fontFamily: 'System',
     color: '#4B4B4B',
   },
   footer: {

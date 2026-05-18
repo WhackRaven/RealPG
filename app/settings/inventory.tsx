@@ -15,9 +15,12 @@ const ITEM_INFO: Record<string, { name: string; description: string; icon: any; 
   joker_card: { name: 'Joker-Karte', description: 'Überspringe eine Quest ohne Strafe', icon: Star, color: '#EC4899' },
   neon_theme: { name: 'Neon Theme', description: 'Aktiviere ein leuchtendes Neon-Design', icon: Palette, color: '#00CD00' },
   xp_booster: { name: 'XP-Booster', description: '+50% XP für 1 Stunde', icon: Sparkles, color: '#3B82F6' },
-  coins_booster: { name: 'Münzen-Booster', description: '+50% Münzen für 1 Stunde', icon: Zap, color: '#FF7F24' },
+  coins_booster: { name: 'Blitz-Booster', description: '+50% Blitze für 1 Stunde', icon: Zap, color: '#FF7F24' },
   streak_shield: { name: 'Streak-Schild', description: 'Schütze deine Streak für einen Tag', icon: Shield, color: '#EF4444' },
   treasure_chest: { name: 'Schatztruhe', description: 'Öffne sie für eine Überraschung!', icon: Gem, color: '#7C3AED' },
+  level_up_pill: { name: 'Level-Sprung', description: 'Gibt dir sofort 300 XP auf dein Konto.', icon: Sparkles, color: '#FF00E4' },
+  coin_pouch: { name: 'Blitz-Beutel', description: 'Öffne ihn für 20 - 150 Blitze.', icon: Zap, color: '#FFD700' },
+  streak_freeze: { name: 'Streak-Retter', description: 'Schützt deine Streak vor dem Reset.', icon: Shield, color: '#3B82F6' },
 };
 
 export default function Inventory() {
@@ -40,7 +43,7 @@ export default function Inventory() {
 
     switch (itemId) {
       case 'joker_card':
-        Alert.alert(
+        useAppStore.getState().showAlert(
           'Joker verwenden',
           'Möchtest du eine Joker-Karte verbrauchen? Du kannst damit eine beliebige Quest sofort abschließen.',
           [
@@ -50,7 +53,7 @@ export default function Inventory() {
               onPress: () => {
                 if (useInventoryItem('joker_card')) {
                   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                  Alert.alert('Joker aktiviert!', 'Gehe zum Dashboard und schließe eine Quest ab.');
+                  useAppStore.getState().showAlert('Joker aktiviert!', 'Gehe zum Dashboard und schließe eine Quest ab.');
                 }
               }
             }
@@ -60,23 +63,23 @@ export default function Inventory() {
 
       case 'xp_booster':
         if (hasActiveBuff('xp_boost')) {
-          Alert.alert('Aktiv', 'Ein XP-Booster ist bereits aktiv!');
+          useAppStore.getState().showAlert('Aktiv', 'Ein XP-Booster ist bereits aktiv!');
         } else {
           useInventoryItem('xp_booster');
           activateBuff('xp_boost', 60);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          Alert.alert('XP-Booster aktiv!', 'Du erhältst jetzt 60 Minuten lang +50% XP!');
+          useAppStore.getState().showAlert('XP-Booster aktiv!', 'Du erhältst jetzt 60 Minuten lang +50% XP!');
         }
         break;
 
       case 'coins_booster':
         if (hasActiveBuff('coins_boost')) {
-          Alert.alert('Aktiv', 'Ein Münzen-Booster ist bereits aktiv!');
+          useAppStore.getState().showAlert('Aktiv', 'Ein Blitz-Booster ist bereits aktiv!');
         } else {
           useInventoryItem('coins_booster');
           activateBuff('coins_boost', 60);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          Alert.alert('Münz-Booster aktiv!', 'Du erhältst jetzt 60 Minuten lang +50% Münzen!');
+          useAppStore.getState().showAlert('Blitz-Booster aktiv!', 'Du erhältst jetzt 60 Minuten lang +50% Blitze!');
         }
         break;
 
@@ -84,25 +87,54 @@ export default function Inventory() {
         const reward = openTreasureChest();
         if (reward) {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          Alert.alert('Schatztruhe geöffnet! 🎁', `Du hast gefunden: ${reward.name}!`);
+          useAppStore.getState().showAlert('Schatztruhe geöffnet! 🎁', `Du hast gefunden: ${reward.name}!`);
         }
         break;
 
       case 'neon_theme':
         toggleNeonTheme(!neonThemeEnabled);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert('Theme geändert', `Neon-Theme wurde ${!neonThemeEnabled ? 'aktiviert' : 'deaktiviert'}.`);
+        useAppStore.getState().showAlert('Theme geändert', `Neon-Theme wurde ${!neonThemeEnabled ? 'aktiviert' : 'deaktiviert'}.`);
         break;
 
       case 'legendary_avatar':
-        Alert.alert('Avatar wechseln', 'Gehe in die Avatar-Einstellungen um diesen Look zu wählen.', [
+        useAppStore.getState().showAlert('Avatar wechseln', 'Gehe in die Avatar-Einstellungen um diesen Look zu wählen.', [
           { text: 'OK' },
           { text: 'Zu Avataren', onPress: () => router.push('/settings/avatar') }
         ]);
         break;
 
+      case 'level_up_pill':
+        if (useInventoryItem('level_up_pill')) {
+          useAppStore.getState().addXp(300);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          useAppStore.getState().showAlert('Level-Sprung!', 'Du hast sofort 300 XP erhalten!');
+        }
+        break;
+
+      case 'coin_pouch':
+        if (useInventoryItem('coin_pouch')) {
+          const coins = Math.floor(Math.random() * 131) + 20;
+          useAppStore.getState().addCoins(coins);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          useAppStore.getState().showAlert('Blitz-Beutel geöffnet!', `Du hast ${coins} Blitze gefunden!`);
+        }
+        break;
+
+      case 'streak_freeze':
+      case 'streak_shield':
+        if (hasActiveBuff('streak_shield')) {
+          useAppStore.getState().showAlert('Aktiv', 'Ein Streak-Schild ist bereits aktiv!');
+        } else {
+          useInventoryItem(itemId);
+          activateBuff('streak_shield', 1440);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          useAppStore.getState().showAlert('Streak geschützt!', 'Deine Streak ist nun für 24 Stunden geschützt!');
+        }
+        break;
+
       default:
-        Alert.alert('Info', 'Dieses Item wird automatisch verwendet oder kann hier nicht aktiviert werden.');
+        useAppStore.getState().showAlert('Info', 'Dieses Item wird automatisch verwendet oder kann hier nicht aktiviert werden.');
     }
   };
 

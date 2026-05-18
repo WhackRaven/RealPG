@@ -21,7 +21,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Fehler', 'Bitte E-Mail und Passwort eingeben');
+      useAppStore.getState().showAlert('Fehler', 'Bitte E-Mail und Passwort eingeben');
       return;
     }
 
@@ -34,10 +34,10 @@ export default function LoginScreen() {
         setAccountType('cloud');
         router.replace('/(onboarding)/step/1');
       } else {
-        Alert.alert('Anmeldung fehlgeschlagen', data.error || 'Unbekannter Fehler');
+        useAppStore.getState().showAlert('Anmeldung fehlgeschlagen', data.error || 'Unbekannter Fehler');
       }
     } catch (err: any) {
-      Alert.alert('Fehler', err.message || 'Verbindung fehlgeschlagen');
+      useAppStore.getState().showAlert('Fehler', err.message || 'Verbindung fehlgeschlagen');
     } finally {
       setLoading(false);
     }
@@ -138,8 +138,8 @@ const stylesLight = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20 },
   backButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
   content: { flex: 1, padding: 24 },
-  title: { fontSize: 28, fontWeight: '900', color: '#4B4B4B', textAlign: 'center', marginTop: 10 },
-  subtitle: { fontSize: 16, color: '#AFAFAF', textAlign: 'center', marginTop: 8, marginBottom: 30 },
+  title: { fontSize: 28, fontWeight: '900', fontFamily: 'System', color: '#4B4B4B', textAlign: 'center', marginTop: 10 },
+  subtitle: { fontSize: 16, fontFamily: 'System', color: '#AFAFAF', textAlign: 'center', marginTop: 8, marginBottom: 30 },
   form: { gap: 16 },
   inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8F8F8', borderRadius: 12, borderWidth: 1, borderColor: '#E5E5E5' },
   inputIcon: { marginLeft: 16 },

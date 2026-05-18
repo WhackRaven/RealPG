@@ -127,7 +127,7 @@ interface AppState {
   cloudFriendRequests: any[];
   cloudLeaderboard: any[];
   cloudInviteCode: string | null;
-  aiMode: 'cloud' | 'off' | null;
+  aiMode: 'cloud';
   syncToCloud: () => Promise<void>;
   loadCloudFriends: () => Promise<void>;
   loadCloudFriendRequests: () => Promise<void>;
@@ -136,9 +136,13 @@ interface AppState {
   loadCloudIdentity: () => Promise<void>;
   acceptCloudFriendRequest: (requestId: string) => Promise<boolean>;
   declineCloudFriendRequest: (requestId: string) => Promise<boolean>;
-  setAIMode: (mode: 'cloud' | 'off') => void;
+  setAIMode: (mode: 'cloud') => void;
+  alertState: { visible: boolean; title: string; message: string; buttons?: any[] };
+  showAlert: (title: string, message?: string, buttons?: any[]) => void;
+  hideAlert: () => void;
+  aiCooldownUntil: number | null;
+  startAICooldown: () => void;
 }
-
 const calculateXpToNextLevel = (level: number) => {
   if (level <= 10) return level * 100;
   if (level <= 30) return level * 250;
@@ -205,7 +209,12 @@ export const useAppStore = create<AppState>()(
       cloudFriendRequests: [],
       cloudLeaderboard: [],
       cloudInviteCode: null,
-      aiMode: null,
+      aiMode: 'cloud',
+      alertState: { visible: false, title: '', message: '' },
+      showAlert: (title, message = '', buttons) => set({ alertState: { visible: true, title, message, buttons } }),
+      hideAlert: () => set((state) => ({ alertState: { ...state.alertState, visible: false } })),
+      aiCooldownUntil: null,
+      startAICooldown: () => set({ aiCooldownUntil: Date.now() + 15000 }),
 
       addXp: (amount) => {
         set((state) => {
@@ -542,6 +551,9 @@ export const useAppStore = create<AppState>()(
           'coins_booster': 100,
           'streak_shield': 75,
           'treasure_chest': 500,
+          'level_up_pill': 250,
+          'coin_pouch': 50,
+          'streak_freeze': 75,
         };
         const price = prices[itemId] || 50;
         
@@ -605,7 +617,7 @@ export const useAppStore = create<AppState>()(
 
         const possibleItems = [
           { id: 'xp_booster', name: 'XP-Booster' },
-          { id: 'coins_booster', name: 'Münzen-Booster' },
+          { id: 'coins_booster', name: 'Blitz-Booster' },
           { id: 'streak_shield', name: 'Streak-Schild' },
           { id: 'joker_card', name: 'Joker-Karte' },
           { id: 'golden_frame', name: 'Goldener Rahmen' }

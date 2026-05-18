@@ -41,9 +41,9 @@ export default function Settings() {
   const s = isDark ? stylesDark : stylesLight;
 
   const handleReset = () => {
-    Alert.alert(
+    useAppStore.getState().showAlert(
       "Daten zurücksetzen?",
-      "Dein gesamter Fortschritt (Level, XP, Münzen) wird gelöscht. Dies kann nicht rückgängig gemacht werden.",
+      "Dein gesamter Fortschritt (Level, XP, Blitze) wird gelöscht. Dies kann nicht rückgängig gemacht werden.",
       [
         { text: "Abbrechen", style: "cancel" },
         { 
@@ -103,7 +103,7 @@ export default function Settings() {
               </View>
               <View style={s.profileStat}>
                 <Zap color="#FF7F24" size={16} />
-                <Text style={s.profileStatText}>{stats.coins} Münzen</Text>
+                <Text style={s.profileStatText}>{stats.coins} Blitze</Text>
               </View>
             </View>
           </View>
@@ -200,7 +200,7 @@ const stylesLight = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 60, backgroundColor: '#FFFFFF', borderBottomWidth: 2, borderBottomColor: '#F2F2F2' },
   backButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
   placeholder: { width: 44 },
-  title: { fontSize: 18, fontWeight: '900', color: '#4B4B4B' },
+  title: { fontSize: 18, fontWeight: '900', fontFamily: 'System', color: '#4B4B4B' },
   content: { padding: 16 },
   profileCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', padding: 16, borderRadius: 20, marginBottom: 20, borderWidth: 2, borderColor: '#F2F2F2', borderBottomWidth: 5 },
   profileAvatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#FFF5EE', justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: '#FF7F24' },

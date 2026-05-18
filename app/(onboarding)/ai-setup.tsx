@@ -5,7 +5,8 @@ import { useAppStore } from '@/src/store/useAppStore';
 import { useRouter } from 'expo-router';
 import { Sparkles, XCircle } from 'lucide-react-native';
 import React, { useCallback, useEffect } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function AISetupScreen() {
   const router = useRouter();
@@ -79,29 +80,28 @@ export default function AISetupScreen() {
 const stylesLight = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   content: { padding: 24, flexGrow: 1 },
-  title: { fontSize: 28, fontWeight: '900', color: '#4B4B4B', textAlign: 'center', marginTop: 12 },
-  subtitle: { fontSize: 15, color: '#AFAFAF', textAlign: 'center', marginTop: 8, marginBottom: 24, lineHeight: 22 },
+  title: { fontSize: 28, fontWeight: '900', fontFamily: 'System', color: '#4B4B4B', textAlign: 'center', marginTop: 12 },
+  subtitle: { fontSize: 15, fontFamily: 'System', color: '#AFAFAF', textAlign: 'center', marginTop: 8, marginBottom: 24, lineHeight: 22 },
   card: { gap: 12 },
   optionCard: { backgroundColor: '#FAFAFA', borderRadius: 22, padding: 18, borderWidth: 2, borderColor: '#F2F2F2', borderBottomWidth: 6 },
   optionIconRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   optionIconPurple: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#F3E8FF', justifyContent: 'center', alignItems: 'center' },
   optionIconGray: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' },
   optionTextWrap: { flex: 1 },
-  optionTitle: { fontSize: 18, fontWeight: '900', color: '#4B4B4B' },
-  optionDesc: { fontSize: 13, color: '#AFAFAF', marginTop: 4, lineHeight: 18 },
+  optionTitle: { fontSize: 18, fontWeight: '900', fontFamily: 'System', color: '#4B4B4B' },
+  optionDesc: { fontSize: 13, fontFamily: 'System', color: '#AFAFAF', marginTop: 4, lineHeight: 18 },
 });
-
 const stylesDark = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0F172A' },
   content: { padding: 24, flexGrow: 1 },
-  title: { fontSize: 28, fontWeight: '900', color: '#F1F5F9', textAlign: 'center', marginTop: 12 },
-  subtitle: { fontSize: 15, color: '#94A3B8', textAlign: 'center', marginTop: 8, marginBottom: 24, lineHeight: 22 },
+  title: { fontSize: 28, fontWeight: '900', fontFamily: 'System', color: '#F1F5F9', textAlign: 'center', marginTop: 12 },
+  subtitle: { fontSize: 15, fontFamily: 'System', color: '#94A3B8', textAlign: 'center', marginTop: 8, marginBottom: 24, lineHeight: 22 },
   card: { gap: 12 },
   optionCard: { backgroundColor: '#1E293B', borderRadius: 22, padding: 18, borderWidth: 2, borderColor: '#334155', borderBottomWidth: 6 },
   optionIconRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   optionIconPurple: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#2E1065', justifyContent: 'center', alignItems: 'center' },
   optionIconGray: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#1E293B', justifyContent: 'center', alignItems: 'center' },
   optionTextWrap: { flex: 1 },
-  optionTitle: { fontSize: 18, fontWeight: '900', color: '#F1F5F9' },
-  optionDesc: { fontSize: 13, color: '#94A3B8', marginTop: 4, lineHeight: 18 },
+  optionTitle: { fontSize: 18, fontWeight: '900', fontFamily: 'System', color: '#F1F5F9' },
+  optionDesc: { fontSize: 13, fontFamily: 'System', color: '#94A3B8', marginTop: 4, lineHeight: 18 },
 });

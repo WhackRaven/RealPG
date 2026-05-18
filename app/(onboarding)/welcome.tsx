@@ -2,7 +2,8 @@ import CustomButton from '@/components/CustomButton';
 import FoxMascot from '@/components/FoxMascot';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { SafeAreaView, StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { User, Zap, Mail } from 'lucide-react-native';
 import { useTheme } from '@/src/context/ThemeContext';
 import { useAppStore } from '@/src/store/useAppStore';
@@ -76,39 +77,38 @@ export default function WelcomeScreen() {
 const stylesLight = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   content: { flex: 1, padding: 24 },
-  title: { fontSize: 28, fontWeight: '900', color: '#4B4B4B', textAlign: 'center', marginTop: 20 },
-  subtitle: { fontSize: 16, color: '#AFAFAF', textAlign: 'center', marginTop: 8, marginBottom: 30 },
+  title: { fontSize: 28, fontWeight: '900', fontFamily: 'System', color: '#4B4B4B', textAlign: 'center', marginTop: 20 },
+  subtitle: { fontSize: 16, fontFamily: 'System', color: '#AFAFAF', textAlign: 'center', marginTop: 8, marginBottom: 30 },
   optionsContainer: { width: '100%', gap: 16 },
   optionCard: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 20, borderWidth: 2, borderColor: '#F2F2F2', borderBottomWidth: 6 },
   optionIcon: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#FFF5EE', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  optionTitle: { fontSize: 20, fontWeight: '900', color: '#4B4B4B', marginBottom: 6 },
-  optionDesc: { fontSize: 14, color: '#AFAFAF', lineHeight: 20 },
+  optionTitle: { fontSize: 20, fontWeight: '900', fontFamily: 'System', color: '#4B4B4B', marginBottom: 6 },
+  optionDesc: { fontSize: 14, fontFamily: 'System', color: '#AFAFAF', lineHeight: 20 },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#ECFDF5', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, alignSelf: 'flex-start', marginTop: 12 },
-  badgeText: { fontSize: 11, fontWeight: '800', color: '#10B981' },
+  badgeText: { fontSize: 11, fontWeight: '800', fontFamily: 'System', color: '#10B981' },
   optionCardCloud: { backgroundColor: '#FAFAFA', borderColor: '#E9D5FF' },
   optionIconCloud: { backgroundColor: '#F3E8FF' },
   optionTitleCloud: { color: '#7C3AED' },
   optionDescCloud: { color: '#A855F7' },
   badgeCloud: { backgroundColor: '#F3E8FF' },
-  badgeTextCloud: { color: '#7C3AED' },
+  badgeTextCloud: { fontSize: 11, fontWeight: '800', fontFamily: 'System', color: '#7C3AED' },
 });
-
 const stylesDark = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0F172A' },
   content: { flex: 1, padding: 24 },
-  title: { fontSize: 28, fontWeight: '900', color: '#F1F5F9', textAlign: 'center', marginTop: 20 },
-  subtitle: { fontSize: 16, color: '#94A3B8', textAlign: 'center', marginTop: 8, marginBottom: 30 },
+  title: { fontSize: 28, fontWeight: '900', fontFamily: 'System', color: '#F1F5F9', textAlign: 'center', marginTop: 20 },
+  subtitle: { fontSize: 16, fontFamily: 'System', color: '#94A3B8', textAlign: 'center', marginTop: 8, marginBottom: 30 },
   optionsContainer: { width: '100%', gap: 16 },
   optionCard: { backgroundColor: '#1E293B', borderRadius: 24, padding: 20, borderWidth: 2, borderColor: '#334155', borderBottomWidth: 6 },
   optionIcon: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#2D1B0E', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  optionTitle: { fontSize: 20, fontWeight: '900', color: '#F1F5F9', marginBottom: 6 },
-  optionDesc: { fontSize: 14, color: '#94A3B8', lineHeight: 20 },
+  optionTitle: { fontSize: 20, fontWeight: '900', fontFamily: 'System', color: '#F1F5F9', marginBottom: 6 },
+  optionDesc: { fontSize: 14, fontFamily: 'System', color: '#94A3B8', lineHeight: 20 },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#052E16', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, alignSelf: 'flex-start', marginTop: 12 },
-  badgeText: { fontSize: 11, fontWeight: '800', color: '#22C55E' },
+  badgeText: { fontSize: 11, fontWeight: '800', fontFamily: 'System', color: '#22C55E' },
   optionCardCloud: { backgroundColor: '#1E1B2E', borderColor: '#4C1D95' },
   optionIconCloud: { backgroundColor: '#2E1065' },
   optionTitleCloud: { color: '#A78BFA' },
   optionDescCloud: { color: '#A78BFA' },
   badgeCloud: { backgroundColor: '#2E1065' },
-  badgeTextCloud: { color: '#A78BFA' },
+  badgeTextCloud: { fontSize: 11, fontWeight: '800', fontFamily: 'System', color: '#A78BFA' },
 });

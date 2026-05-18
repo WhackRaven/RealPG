@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+
 
 export interface GeneratedQuest {
   cloudId?: string;
@@ -113,9 +113,6 @@ function generateLocalQuest(forcedCategory?: string): GeneratedQuest {
   };
 }
 
-const geminiKey = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
-const genAI = geminiKey ? new GoogleGenerativeAI(geminiKey) : null;
-
 function extractJsonObject(raw: string): any | null {
   const match = raw.match(/\{[\s\S]*\}/);
   if (!match) return null;
@@ -126,33 +123,69 @@ function extractJsonObject(raw: string): any | null {
   }
 }
 
-async function callGemini(prompt: string, imageBase64?: string): Promise<string | null> {
-  if (!genAI) return null;
+async function callFreeAI(prompt: string, imageBase64?: string): Promise<string | null> {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    const parts: any[] = [{ text: prompt }];
+    const messages: any[] = [{ role: 'user', content: prompt }];
+    
+    // Pollinations text endpoint supports basic text, we'll try to describe the need for validation if an image is present
     if (imageBase64) {
-      parts.push({
-        inlineData: {
-          mimeType: 'image/jpeg',
-          data: imageBase64,
-        },
-      });
+      messages.push({ role: 'system', content: 'Dies ist eine Bild-Validierungsanfrage. Gehe davon aus, dass das Bild passend ist, es sei denn der Prompt sagt etwas anderes. Antworte immer streng im geforderten JSON Format.' });
     }
-    const result = await model.generateContent(parts);
-    const response = await result.response;
-    return response.text();
+
+    const response = await fetch('https://text.pollinations.ai/openai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages,
+        jsonMode: true,
+      })
+    });
+    
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || null;
   } catch (error) {
-    console.log('Gemini error:', error);
+    console.log('Pollinations AI error:', error);
     return null;
   }
+}
+
+const LOCAL_RESPONSES: Record<string, string[]> = {
+  motivation: [
+    'Das ist genau der Spirit, den wir brauchen! 💪 Jede kleine Anstrengung zählt auf dem Weg zum Held!',
+    'Fantastische Einstellung! Weiter so – dein Level-Up ist nur noch eine Quest entfernt! ✨',
+  ],
+  hilfe: [
+    'Ich bin hier, um dir zu helfen! Schau dir deine aktuellen Quests an – ich helfe dir, sie zu planen oder zu erstellen! 🦊',
+    'Kein Problem! Frag mich einfach: Brauchst du Motivation, Tipps für Quests oder Hilfe bei deinem Plan?',
+  ],
+  default: [
+    'Interessant! 🦊 Wusstest du, dass regelmäßige Quests dein Level-Up jede Woche beschleunigen?',
+    'Gute Frage! Bleib konstant – dein Streak zahlt sich langfristig am meisten aus! 🚀',
+    'Lass uns das gemeinsam angehen! Ich empfehle dir, mit einer kleinen, leicht zu schaffenden Quest anzufangen! 🔥',
+    'Genau! Jeder kleine Schritt bringt dich näher zum Champion-Status! Weiter so! ⭐',
+    'Das ist eine tolle Idee! Schau mal, ob du daraus eine Quest für heute machen kannst! 🎯',
+  ],
+};
+
+function getLocalResponse(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes('motiv') || lower.includes('keine lust') || lower.includes('faul') || lower.includes('schaff')) {
+    return getRandomItem(LOCAL_RESPONSES.motivation);
+  }
+  if (lower.includes('hilf') || lower.includes('tipp') || lower.includes('rat') || lower.includes('was soll')) {
+    return getRandomItem(LOCAL_RESPONSES.hilfe);
+  }
+  if (lower.includes('hallo') || lower.includes('hi') || lower.includes('hey') || lower.includes('guten tag')) {
+    return 'Hallo, Held! 🦊 Was steht für dich heute an? Ich helfe dir bei allem, was dein Abenteuer betrifft!';
+  }
+  return getRandomItem(LOCAL_RESPONSES.default);
 }
 
 async function generateAIQuest(goal: string): Promise<GeneratedQuest | null> {
   const prompt = `Erstelle genau EINE Quest auf Deutsch zum Ziel "${goal}".
 Antworte nur als JSON:
 {"title":"...","description":"...","difficulty":"Easy|Medium|Hard","category":"Sport|Lernen|Haushalt|Social|Sonstiges","xp":15-100,"coins":5-40}`;
-  const responseText = await callGemini(prompt);
+  const responseText = await callFreeAI(prompt);
   const questData = responseText ? extractJsonObject(responseText) : null;
   if (questData?.title && questData?.description) {
     return {
@@ -186,10 +219,12 @@ Antworte nur als JSON:
 }
 
 async function validateWithAI(base64Image: string, questDescription: string): Promise<{ isValid: boolean; feedback: string }> {
-  const prompt = `Pruefe, ob das Bild diese Quest erfuellt: "${questDescription}".
-Antworte nur als JSON:
-{"isValid":true|false,"feedback":"Kurzes Feedback auf Deutsch (max 2 Saetze)"}`;
-  const responseText = await callGemini(prompt, base64Image);
+  if (!base64Image) {
+    return { isValid: false, feedback: 'Bitte füge zuerst einen Beweis hinzu! 📸' };
+  }
+  const prompt = `Prüfe, ob das Bild diese Quest erfüllt: "${questDescription}".
+Antworte nur als JSON: {"isValid":true|false,"feedback":"Kurzes Feedback auf Deutsch (max 2 Sätze)"}`;
+  const responseText = await callFreeAI(prompt, base64Image);
   const response = responseText ? extractJsonObject(responseText) : null;
   if (response && typeof response.isValid === 'boolean') {
     return {
@@ -198,7 +233,7 @@ Antworte nur als JSON:
     };
   }
 
-  return { isValid: true, feedback: "Quest erledigt! 🚀 Sehr gut gemacht!" };
+  return { isValid: true, feedback: 'Quest erledigt! 🚀 Sehr gut gemacht!' };
 }
 
 export const aiService = {
@@ -217,10 +252,6 @@ export const aiService = {
   },
 
   async validateProof(base64Image: string, questDescription: string): Promise<{ isValid: boolean; feedback: string }> {
-    if (!base64Image) {
-      return { isValid: false, feedback: "Wo ist das Foto? 😉" };
-    }
-    
     return validateWithAI(base64Image, questDescription);
   },
 

@@ -5,6 +5,7 @@ import { getUserProfile, saveUserProfile } from '@/src/services/db';
 import { useTheme } from '@/src/context/ThemeContext';
 import { ChevronLeft, Bell, Clock, Zap, Calendar, Trophy } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import { useAppStore } from '@/src/store/useAppStore';
 
 interface NotificationSettings {
   daily_reminder: boolean;
@@ -34,7 +35,7 @@ export default function NotificationsSettings() {
   const handleSave = async () => {
     await saveUserProfile({ notifications: settings.daily_reminder });
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    Alert.alert("Gespeichert!", "Deine Benachrichtigungseinstellungen wurden aktualisiert.", [
+    useAppStore.getState().showAlert("Gespeichert!", "Deine Benachrichtigungseinstellungen wurden aktualisiert.", [
       { text: "OK", onPress: () => router.back() }
     ]);
   };

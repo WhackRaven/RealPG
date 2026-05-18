@@ -133,11 +133,13 @@ const stylesLight = StyleSheet.create({
     color: '#4B4B4B',
     fontSize: 20,
     fontWeight: '800',
+    fontFamily: 'System',
     marginBottom: 6,
   },
   description: {
     color: '#AFAFAF',
     fontSize: 15,
+    fontFamily: 'System',
     lineHeight: 22,
     marginBottom: 16,
     fontWeight: '600',
@@ -163,6 +165,7 @@ const stylesLight = StyleSheet.create({
     color: '#AFAFAF',
     fontSize: 12,
     fontWeight: '800',
+    fontFamily: 'System',
   },
   categoryTextAi: {
     color: '#9B59B6',
@@ -176,6 +179,7 @@ const stylesLight = StyleSheet.create({
     color: '#FF7F24',
     fontSize: 14,
     fontWeight: '800',
+    fontFamily: 'System',
   },
   actionTextAi: {
     color: '#9B59B6',
@@ -272,6 +276,7 @@ const stylesDark = StyleSheet.create({
     color: '#FF7F24',
     fontSize: 14,
     fontWeight: '800',
+    fontFamily: 'System',
   },
   actionTextAi: {
     color: '#A78BFA',

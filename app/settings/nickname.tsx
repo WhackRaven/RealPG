@@ -5,6 +5,7 @@ import { getUserProfile, saveUserProfile } from '@/src/services/db';
 import { useTheme } from '@/src/context/ThemeContext';
 import { ChevronLeft, Crown } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import { useAppStore } from '@/src/store/useAppStore';
 
 export default function NicknameSettings() {
   const router = useRouter();
@@ -27,17 +28,17 @@ export default function NicknameSettings() {
 
   const handleSave = async () => {
     if (!nickname.trim()) {
-      Alert.alert("Fehler", "Bitte gib einen Nickname ein.");
+      useAppStore.getState().showAlert("Fehler", "Bitte gib einen Nickname ein.");
       return;
     }
     if (nickname.length < 2) {
-      Alert.alert("Fehler", "Der Nickname muss mindestens 2 Zeichen haben.");
+      useAppStore.getState().showAlert("Fehler", "Der Nickname muss mindestens 2 Zeichen haben.");
       return;
     }
     
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     await saveUserProfile({ nickname: nickname.trim() });
-    Alert.alert("Gespeichert!", "Dein Nickname wurde aktualisiert.", [
+    useAppStore.getState().showAlert("Gespeichert!", "Dein Nickname wurde aktualisiert.", [
       { text: "OK", onPress: () => router.back() }
     ]);
   };

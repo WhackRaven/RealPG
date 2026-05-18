@@ -22,17 +22,17 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!email || !password || !confirmPassword) {
-      Alert.alert('Fehler', 'Bitte alle Felder ausfüllen');
+      useAppStore.getState().showAlert('Fehler', 'Bitte alle Felder ausfüllen');
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Fehler', 'Passwörter stimmen nicht überein');
+      useAppStore.getState().showAlert('Fehler', 'Passwörter stimmen nicht überein');
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Fehler', 'Passwort muss mindestens 6 Zeichen haben');
+      useAppStore.getState().showAlert('Fehler', 'Passwort muss mindestens 6 Zeichen haben');
       return;
     }
 
@@ -45,10 +45,10 @@ export default function RegisterScreen() {
         setAccountType('cloud');
         router.replace('/(onboarding)/welcome');
       } else {
-        Alert.alert('Registrierung fehlgeschlagen', data.error || 'Unbekannter Fehler');
+        useAppStore.getState().showAlert('Registrierung fehlgeschlagen', data.error || 'Unbekannter Fehler');
       }
     } catch (err: any) {
-      Alert.alert('Fehler', err.message || 'Verbindung fehlgeschlagen');
+      useAppStore.getState().showAlert('Fehler', err.message || 'Verbindung fehlgeschlagen');
     } finally {
       setLoading(false);
     }
@@ -157,8 +157,8 @@ const stylesLight = StyleSheet.create({
   header: { padding: 16, paddingTop: 8 },
   backButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   content: { flex: 1, padding: 24 },
-  title: { fontSize: 28, fontWeight: '900', color: '#4B4B4B', textAlign: 'center', marginTop: 10 },
-  subtitle: { fontSize: 16, color: '#AFAFAF', textAlign: 'center', marginTop: 8, marginBottom: 30 },
+  title: { fontSize: 28, fontWeight: '900', fontFamily: 'System', color: '#4B4B4B', textAlign: 'center', marginTop: 10 },
+  subtitle: { fontSize: 16, fontFamily: 'System', color: '#AFAFAF', textAlign: 'center', marginTop: 8, marginBottom: 30 },
   form: { gap: 16 },
   inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8F8F8', borderRadius: 12, borderWidth: 1, borderColor: '#E5E5E5' },
   inputIcon: { marginLeft: 16 },

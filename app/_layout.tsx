@@ -1,8 +1,10 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useColorScheme } from 'react-native';
+import { useColorScheme, BackHandler, Platform } from 'react-native';
 import { ThemeProvider as AppThemeProvider } from '@/src/context/ThemeContext';
+import { useEffect } from 'react';
+import CustomAlert from '@/components/CustomAlert';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -10,7 +12,7 @@ export default function RootLayout() {
   return (
     <AppThemeProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ headerShown: false }}>
+        <Stack screenOptions={{ headerShown: false, animation: 'fade', contentStyle: { backgroundColor: colorScheme === 'dark' ? '#0F172A' : '#FFFFFF' } }}>
           <Stack.Screen name="index" />
           <Stack.Screen name="(onboarding)/welcome" />
           <Stack.Screen name="(onboarding)/step/[step]" />
@@ -19,15 +21,16 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)/login" />
           <Stack.Screen name="(auth)/register" />
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="settings/index" />
-          <Stack.Screen name="settings/avatar" />
-          <Stack.Screen name="settings/inventory" />
-          <Stack.Screen name="settings/ai-models" />
-          <Stack.Screen name="settings/nickname" />
-          <Stack.Screen name="settings/security" />
-          <Stack.Screen name="settings/notifications" />
-          <Stack.Screen name="settings/about" />
+          <Stack.Screen name="settings/index" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="settings/avatar" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="settings/inventory" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="settings/ai-models" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="settings/nickname" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="settings/security" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="settings/notifications" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="settings/about" options={{ animation: 'slide_from_right' }} />
         </Stack>
+        <CustomAlert />
         <StatusBar style="auto" />
       </ThemeProvider>
     </AppThemeProvider>

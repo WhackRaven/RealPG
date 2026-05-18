@@ -25,11 +25,11 @@ export default function AboutSettings() {
 
   const handleCodeSubmit = () => {
     if (activateAdmin(codeInput)) {
-      Alert.alert('🎉 ADMIN AKTIVIERT!', 'Du bist jetzt ein VIP mit:\n\n✨ Unbegrenzte Coins\n✨ Alles freigeschaltet\n✨ Admin Level');
+      useAppStore.getState().showAlert('🎉 ADMIN AKTIVIERT!', 'Du bist jetzt ein VIP mit:\n\n✨ Unbegrenzte Coins\n✨ Alles freigeschaltet\n✨ Admin Level');
       setShowCodeInput(false);
       setCodeInput('');
     } else {
-      Alert.alert('Falscher Code', 'Der eingegebene Code ist ungültig.');
+      useAppStore.getState().showAlert('Falscher Code', 'Der eingegebene Code ist ungültig.');
     }
     setExpoPressCount(0);
   };

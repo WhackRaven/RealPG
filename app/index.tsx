@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { View, ActivityIndicator, Text, StyleSheet, Alert, Modal, TouchableOpacity, Linking } from 'react-native';
+import { View, ActivityIndicator, Text, StyleSheet, Alert, Modal, TouchableOpacity, Linking, Animated, Easing } from 'react-native';
 import { Redirect } from 'expo-router';
-import * as LinkingModule from 'expo-linking';
 import { initDb, getUserProfile } from '@/src/services/db';
 import { useAppStore } from '@/src/store/useAppStore';
 import { Trophy, Crown, Flame, Star } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface DeepLinkData {
   type: 'progress' | 'friend' | 'invite';
@@ -180,6 +180,38 @@ const modalStyles = StyleSheet.create({
   senderStats: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginTop: 16 },
 });
 
+// Premium loading splash
+function LoadingSplash() {
+  const pulseAnim = new Animated.Value(1);
+  const fadeAnim = new Animated.Value(0);
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.15, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
+  return (
+    <View style={styles.loadingContainer}>
+      <LinearGradient colors={['#0F172A', '#1E293B']} style={StyleSheet.absoluteFill} />
+      <Animated.View style={{ opacity: fadeAnim, transform: [{ scale: pulseAnim }] }}>
+        <View style={styles.loadingIcon}>
+          <Text style={styles.loadingEmoji}>🦊</Text>
+        </View>
+      </Animated.View>
+      <Animated.View style={{ opacity: fadeAnim }}>
+        <Text style={styles.loadingTitle}>RealPG</Text>
+        <Text style={styles.loadingText}>Dein Abenteuer wird geladen...</Text>
+      </Animated.View>
+      <ActivityIndicator size="small" color="#FF7F24" style={{ marginTop: 24 }} />
+    </View>
+  );
+}
+
 export default function Index() {
   const [loading, setLoading] = useState(true);
   const [onboardingCompleted, setOnboardingCompleted] = useState(false);
@@ -249,7 +281,7 @@ export default function Index() {
         title: deepLinkData.senderTitle || 'Anfänger',
         addedAt: new Date().toISOString(),
       });
-      Alert.alert('Freund hinzugefügt!', `${deepLinkData.senderName || 'Der Spieler'} wurde zu deiner Freundesliste hinzugefügt.`);
+      useAppStore.getState().showAlert('Freund hinzugefügt!', `${deepLinkData.senderName || 'Der Spieler'} wurde zu deiner Freundesliste hinzugefügt.`);
     }
     setShowInviteModal(false);
     setDeepLinkData(null);
@@ -262,12 +294,7 @@ export default function Index() {
   };
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF7F24" />
-        <Text style={styles.loadingText}>Lädt...</Text>
-      </View>
-    );
+    return <LoadingSplash />;
   }
 
   if (onboardingCompleted) {
@@ -293,12 +320,34 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#0F172A',
+  },
+  loadingIcon: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#FF7F2420',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#FF7F24',
+    marginBottom: 24,
+  },
+  loadingEmoji: {
+    fontSize: 48,
+  },
+  loadingTitle: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#F1F5F9',
+    textAlign: 'center',
+    letterSpacing: 2,
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#AFAFAF',
-    fontWeight: '600',
+    marginTop: 8,
+    fontSize: 14,
+    color: '#94A3B8',
+    fontWeight: '700',
+    textAlign: 'center',
   },
 });

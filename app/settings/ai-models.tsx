@@ -25,45 +25,22 @@ export default function AISettingsScreen() {
       <ScrollView contentContainerStyle={s.content}>
         <Text style={s.sectionTitle}>KI-MODUS</Text>
         <Text style={s.sectionDesc}>
-          Wähle, ob der KI-Assistent aktiviert sein soll. Im Cloud-Modus wird die KI
-          über das Internet genutzt.
+          Der KI-Assistent ist permanent im Cloud-Modus aktiv. Quests, Validierung und Chatbot
+          stehen dir jederzeit zur Verfügung.
         </Text>
 
-        <TouchableOpacity
-          style={[s.optionCard, aiMode === 'cloud' && s.optionCardActive]}
-          onPress={() => { setAIMode('cloud'); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
-        >
+        <View style={[s.optionCard, s.optionCardActive]}>
           <View style={s.optionRow}>
             <View style={[s.optionIcon, { backgroundColor: isDark ? '#2E1065' : '#F3E8FF' }]}>
               <Sparkles color="#9B59B6" size={24} />
             </View>
             <View style={s.optionInfo}>
-              <Text style={s.optionTitle}>Cloud-KI</Text>
-              <Text style={s.optionDesc}>KI-Quests und Validierung (Internet erforderlich)</Text>
+              <Text style={s.optionTitle}>Cloud-KI (Aktiv)</Text>
+              <Text style={s.optionDesc}>KI-Quests, Validierung & Chatbot (Kostenlos via Pollinations.ai)</Text>
             </View>
-            {aiMode === 'cloud' && (
-              <CheckCircle2 color="#10B981" size={24} />
-            )}
+            <CheckCircle2 color="#10B981" size={24} />
           </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[s.optionCard, aiMode === 'off' && s.optionCardActive]}
-          onPress={() => { setAIMode('off'); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
-        >
-          <View style={s.optionRow}>
-            <View style={[s.optionIcon, { backgroundColor: isDark ? '#1E293B' : '#F1F5F9' }]}>
-              <XCircle color="#94A3B8" size={24} />
-            </View>
-            <View style={s.optionInfo}>
-              <Text style={[s.optionTitle, { color: isDark ? '#94A3B8' : '#AFAFAF' }]}>Deaktiviert</Text>
-              <Text style={s.optionDesc}>Nur mit Standard-Quests spielen</Text>
-            </View>
-            {aiMode === 'off' && (
-              <CheckCircle2 color="#10B981" size={24} />
-            )}
-          </View>
-        </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

@@ -3,12 +3,12 @@ import {
   StyleSheet, 
   View, 
   Text, 
-  SafeAreaView, 
   TouchableOpacity,
   FlatList,
   Dimensions,
   Alert
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '@/src/store/useAppStore';
 import { useTheme } from '@/src/context/ThemeContext';
@@ -38,9 +38,12 @@ const SHOP_ITEMS = [
   { id: 'joker_card', name: 'Joker-Karte', price: 30, icon: Star, color: '#EC4899', category: 'Item', description: 'Überspringe eine Quest ohne XP-Verlust.' },
   { id: 'neon_theme', name: 'Neon Theme', price: 200, icon: Palette, color: '#00CD00', category: 'Theme', description: 'Die App leuchtet in futuristischen Farben.' },
   { id: 'xp_booster', name: 'XP Booster', price: 150, icon: Sparkles, color: '#3B82F6', category: 'Buff', description: 'Doppelte XP für die nächsten 3 Quests.' },
-  { id: 'coins_booster', name: 'Münz-Booster', price: 100, icon: Zap, color: '#FF7F24', category: 'Buff', description: 'Mehr Münzen für abgeschlossene Aufgaben.' },
+  { id: 'coins_booster', name: 'Blitz-Booster', price: 100, icon: Zap, color: '#FF7F24', category: 'Buff', description: 'Mehr Blitze für abgeschlossene Aufgaben.' },
   { id: 'streak_shield', name: 'Streak-Schild', price: 75, icon: Flame, color: '#EF4444', category: 'Item', description: 'Schützt deinen Streak für einen Tag.' },
   { id: 'treasure_chest', name: 'Schatztruhe', price: 500, icon: Gem, color: '#7C3AED', category: 'Special', description: 'Enthält ein zufälliges seltenes Item!' },
+  { id: 'level_up_pill', name: 'Level-Sprung', price: 250, icon: Sparkles, color: '#FF00E4', category: 'Buff', description: 'Gibt dir sofort 300 XP auf dein Konto.' },
+  { id: 'coin_pouch', name: 'Blitz-Beutel', price: 50, icon: Zap, color: '#FFD700', category: 'Special', description: 'Enthält zwischen 20 und 150 Blitze.' },
+  { id: 'streak_freeze', name: 'Streak-Retter', price: 75, icon: Shield, color: '#3B82F6', category: 'Buff', description: 'Verhindert den Verlust deines Streaks.' },
 ];
 
 export default function Shop() {
@@ -53,20 +56,20 @@ export default function Shop() {
     const ownedItem = inventory.find(i => i.id === item.id);
     
     if (item.category === 'Avatar' && ownedItem) {
-      Alert.alert("Bereits gekauft!", "Dieses Item hast du bereits!");
+      useAppStore.getState().showAlert("Bereits gekauft!", "Dieses Item hast du bereits!");
       return;
     }
     
     if (stats.coins >= item.price) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       purchaseItem(item.id, item.name, item.category === 'Avatar' ? 'avatar' : item.category === 'Theme' ? 'theme' : item.category === 'Buff' ? 'buff' : 'joker', item.name);
-      Alert.alert(
+      useAppStore.getState().showAlert(
         "Gekauft! 🎉", 
         `${item.name} wurde zu deinem Inventar hinzugefügt!`
       );
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert("Nicht genug Münzen!", `Du brauchst ${item.price} Münzen, aber hast nur ${stats.coins}.`);
+      useAppStore.getState().showAlert("Nicht genug Blitze!", `Du brauchst ${item.price} Blitze, aber hast nur ${stats.coins}.`);
     }
   };
 
@@ -168,13 +171,13 @@ const stylesLight = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    paddingTop: 40,
+    paddingTop: 8,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 2,
     borderBottomColor: '#F2F2F2',
   },
   backButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 16, fontWeight: '800', color: '#AFAFAF', letterSpacing: 1 },
+  title: { fontSize: 16, fontWeight: '800', fontFamily: 'System', color: '#AFAFAF', letterSpacing: 1 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   invButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#ECFDF5', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#D1FAE5' },
   coinBadge: {
@@ -221,9 +224,9 @@ const stylesLight = StyleSheet.create({
     borderRadius: 10,
   },
   ownedBadgeText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
-  itemName: { fontSize: 14, fontWeight: '900', color: '#4B4B4B', textAlign: 'center' },
-  itemDesc: { fontSize: 11, color: '#AFAFAF', textAlign: 'center', marginTop: 4, fontWeight: '600', height: 32 },
-  itemCategory: { fontSize: 10, marginTop: 8, fontWeight: '800' },
+  itemName: { fontSize: 14, fontWeight: '900', fontFamily: 'System', color: '#4B4B4B', textAlign: 'center' },
+  itemDesc: { fontSize: 11, fontFamily: 'System', color: '#AFAFAF', textAlign: 'center', marginTop: 4, fontWeight: '600', height: 32 },
+  itemCategory: { fontSize: 10, fontFamily: 'System', marginTop: 8, fontWeight: '800' },
   priceTag: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -248,7 +251,7 @@ const stylesDark = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    paddingTop: 40,
+    paddingTop: 8,
     backgroundColor: '#0F172A',
     borderBottomWidth: 2,
     borderBottomColor: '#334155',
@@ -301,9 +304,9 @@ const stylesDark = StyleSheet.create({
     borderRadius: 10,
   },
   ownedBadgeText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
-  itemName: { fontSize: 14, fontWeight: '900', color: '#F1F5F9', textAlign: 'center' },
-  itemDesc: { fontSize: 11, color: '#94A3B8', textAlign: 'center', marginTop: 4, fontWeight: '600', height: 32 },
-  itemCategory: { fontSize: 10, marginTop: 8, fontWeight: '800' },
+  itemName: { fontSize: 14, fontWeight: '900', fontFamily: 'System', color: '#F1F5F9', textAlign: 'center' },
+  itemDesc: { fontSize: 11, fontFamily: 'System', color: '#94A3B8', textAlign: 'center', marginTop: 4, fontWeight: '600', height: 32 },
+  itemCategory: { fontSize: 10, fontFamily: 'System', marginTop: 8, fontWeight: '800' },
   priceTag: {
     flexDirection: 'row',
     alignItems: 'center',
