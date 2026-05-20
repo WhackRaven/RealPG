@@ -5,9 +5,14 @@ import { useColorScheme, BackHandler, Platform } from 'react-native';
 import { ThemeProvider as AppThemeProvider } from '@/src/context/ThemeContext';
 import { useEffect } from 'react';
 import CustomAlert from '@/components/CustomAlert';
+import { notificationService } from '@/src/services/notifications';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+
+  useEffect(() => {
+    notificationService.requestPermissions();
+  }, []);
 
   return (
     <AppThemeProvider>

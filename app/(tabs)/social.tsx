@@ -5,7 +5,7 @@ import { useTheme } from '@/src/context/ThemeContext';
 import { useAppStore } from '@/src/store/useAppStore';
 import { getUserProfile } from '@/src/services/db';
 import FoxMascot from '@/components/FoxMascot';
-import { Users, Share2, Trophy, Star, Crown, Heart, MessageCircle, Send, Copy, Plus, Check, X, QrCode, UserPlus, Cloud, RefreshCw, ShieldAlert, Zap } from 'lucide-react-native';
+import { Users, Share2, Trophy, Star, Crown, Heart, MessageCircle, Send, Copy, Plus, Check, X, QrCode, UserPlus, Cloud, RefreshCw, ShieldAlert, Zap, Bell } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export default function SocialScreen() {
@@ -20,10 +20,10 @@ export default function SocialScreen() {
   const [showAddFriend, setShowAddFriend] = useState(false);
   const [friendCodeInput, setFriendCodeInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const isCloud = accountType === 'cloud';
+  const pendingRequestsCount = isCloud ? cloudFriendRequests.length : friendRequests.length;
 
   const s = isNeon ? stylesNeon : (isDark ? stylesDark : stylesLight);
-
-  const isCloud = accountType === 'cloud';
 
   React.useEffect(() => {
     async function loadProfile() {
@@ -31,13 +31,30 @@ export default function SocialScreen() {
       setProfile(p);
     }
     loadProfile();
-    
-    if (isCloud) {
-      loadCloudIdentity();
-      loadCloudFriends();
-      loadCloudFriendRequests();
-      loadCloudLeaderboard();
+
+    let unsubscribe: (() => void) | undefined;
+    async function setupCloudListeners() {
+      if (!isCloud) return;
+
+      await loadCloudIdentity();
+      await loadCloudFriends();
+      await loadCloudFriendRequests();
+      await loadCloudLeaderboard();
+
+      const { cloudService } = await import('@/src/services/cloud');
+      const userId = useAppStore.getState().userId;
+      if (userId) {
+        unsubscribe = cloudService.subscribeToFriendUpdates(userId, async () => {
+          await loadCloudFriendRequests();
+          await loadCloudFriends();
+        });
+      }
     }
+
+    setupCloudListeners();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [isCloud]);
 
   const myCode = isCloud ? (cloudInviteCode || inviteCode || generateInviteCode()) : (inviteCode || generateInviteCode());
@@ -83,12 +100,15 @@ export default function SocialScreen() {
 
   const handleInvite = async () => {
     const code = myCode;
-    const message = `ðŸŽ® Tritt meiner Gilde in RealPG bei! Nutze meinen Code: ${code}`;
-    try { await Share.share({ message }); } catch (e) {}
+    const profileName = encodeURIComponent(profile?.nickname || 'Held');
+    const url = `https://realpg.app/i/${code}/${profileName}/${stats.level}/${stats.questsCompleted}/${stats.streak}/${encodeURIComponent(stats.title)}`;
+    const message = `Tritt meiner Gilde in RealPG bei! Klick den Link: ${url}`;
+    try { await Share.share({ message, url }); } catch (e) { console.log('Share failed', e); }
   };
 
   const handleCopyCode = () => {
-    useAppStore.getState().showAlert('Dein Gilden-Code', `Code: ${myCode}\n\nTeile ihn mit neuen Mitstreitern!`);
+    const url = `https://realpg.app/i/${myCode}`;
+    useAppStore.getState().showAlert('Dein Gilden-Code', `Code: ${myCode}\n\nLink: ${url}\n\nTeile ihn mit neuen Mitstreitern!`);
   };
 
   const handleAddByCode = async () => {
@@ -126,11 +146,32 @@ export default function SocialScreen() {
             <Text style={s.title}>GILDE & SOZIALES</Text>
             <Text style={s.subtitle}>Gemeinsam zum Level-Up!</Text>
           </View>
-          {isCloud && (
-            <TouchableOpacity style={s.syncButton} onPress={() => syncToCloud()}>
-              <RefreshCw color="#10B981" size={20} />
-            </TouchableOpacity>
-          )}
+          <View style={s.headerActions}>
+            {isCloud && (
+              <TouchableOpacity
+                style={s.notificationButton}
+                onPress={() => {
+                  if (pendingRequestsCount > 0) {
+                    useAppStore.getState().showAlert('Neue Freundschaftsanfragen', `Du hast ${pendingRequestsCount} offene Anfrage(n).`);
+                  } else {
+                    useAppStore.getState().showAlert('Freunde', 'Aktuell gibt es keine neuen Anfragen.');
+                  }
+                }}
+              >
+                <Bell color={pendingRequestsCount > 0 ? '#F59E0B' : '#94A3B8'} size={20} />
+                {pendingRequestsCount > 0 && (
+                  <View style={s.notificationBadge}>
+                    <Text style={s.notificationBadgeText}>{pendingRequestsCount}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            )}
+            {isCloud && (
+              <TouchableOpacity style={s.syncButton} onPress={() => syncToCloud()}>
+                <RefreshCw color="#10B981" size={20} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
       
@@ -274,6 +315,10 @@ const stylesLight = StyleSheet.create({
   content: { padding: 20, paddingTop: 0 },
   header: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 10 },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  notificationButton: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#F8FAFC', justifyContent: 'center', alignItems: 'center' },
+  notificationBadge: { position: 'absolute', top: 6, right: 6, minWidth: 18, minHeight: 18, borderRadius: 9, backgroundColor: '#F59E0B', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 },
+  notificationBadgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900' },
   syncButton: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#F0FDF4', justifyContent: 'center', alignItems: 'center' },
   title: { fontSize: 24, fontWeight: '900', fontFamily: 'System', color: '#4B4B4B' },
   subtitle: { fontSize: 13, fontFamily: 'System', color: '#AFAFAF', fontWeight: '700' },
@@ -322,6 +367,10 @@ const stylesDark = StyleSheet.create({
   content: { padding: 20, paddingTop: 0 },
   header: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 10 },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  notificationButton: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#111827', justifyContent: 'center', alignItems: 'center' },
+  notificationBadge: { position: 'absolute', top: 6, right: 6, minWidth: 18, minHeight: 18, borderRadius: 9, backgroundColor: '#F59E0B', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 },
+  notificationBadgeText: { color: '#0F172A', fontSize: 10, fontWeight: '900' },
   syncButton: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#1E293B', justifyContent: 'center', alignItems: 'center' },
   title: { fontSize: 24, fontWeight: '900', fontFamily: 'System', color: '#F1F5F9' },
   subtitle: { fontSize: 13, fontFamily: 'System', color: '#94A3B8', fontWeight: '700' },
@@ -370,6 +419,10 @@ const stylesNeon = StyleSheet.create({
   content: { padding: 20, paddingTop: 0 },
   header: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 10 },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  notificationButton: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#1B0036', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#00F0FF' },
+  notificationBadge: { position: 'absolute', top: 6, right: 6, minWidth: 18, minHeight: 18, borderRadius: 9, backgroundColor: '#F59E0B', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 },
+  notificationBadgeText: { color: '#0D0221', fontSize: 10, fontWeight: '900' },
   syncButton: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#2D0054', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#00F0FF' },
   title: { fontSize: 24, fontWeight: '900', color: '#FFFFFF', textShadowColor: '#FF00E4', textShadowOffset: {width: 0, height: 0}, textShadowRadius: 10 },
   subtitle: { fontSize: 13, color: '#00F0FF', fontWeight: '900', fontFamily: 'System' },

@@ -5,6 +5,7 @@ import { GeneratedQuest, aiService } from '@/src/services/ai';
 import { getUserProfile } from '@/src/services/db';
 import { useAppStore } from '@/src/store/useAppStore';
 import { useTheme } from '@/src/context/ThemeContext';
+import { notificationService } from '@/src/services/notifications';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
@@ -24,7 +25,7 @@ import {
     X,
     Zap
 } from 'lucide-react-native';
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import {
     Alert,
     Dimensions,
@@ -77,6 +78,39 @@ export default function Dashboard() {
   const [showDailyBonus, setShowDailyBonus] = useState(false);
   const [bonusAmount, setBonusAmount] = useState({ coins: 0, xp: 0 });
   const [countdown, setCountdown] = useState(0);
+  const alertTimeoutRef = useRef<number | null>(null);
+
+  const closeQuestDetailAndReset = () => {
+    setShowModal(false);
+    setShowSuccess(false);
+    setSelectedQuest(null);
+    setImage(null);
+    setImageUri(null);
+    setIsValidating(false);
+  };
+
+  const showTemporaryAlert = (title: string, message: string, duration: number = 4000, buttons?: any[]) => {
+    useAppStore.getState().showAlert(title, message, buttons);
+    if (alertTimeoutRef.current) {
+      clearTimeout(alertTimeoutRef.current);
+    }
+    if (!buttons) {
+      alertTimeoutRef.current = setTimeout(() => {
+        const { alertState } = useAppStore.getState();
+        if (alertState.title === title && alertState.message === message) {
+          useAppStore.getState().hideAlert();
+        }
+      }, duration) as unknown as number;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (alertTimeoutRef.current) {
+        clearTimeout(alertTimeoutRef.current);
+      }
+    };
+  }, []);
   
   const safeStats = stats || { level: 1, xp: 0, coins: 10, xpToNextLevel: 100, title: "Anfänger", streak: 0, questsCompleted: 0 };
   const progressPercent = (safeStats.xp / safeStats.xpToNextLevel) * 100;
@@ -104,6 +138,12 @@ export default function Dashboard() {
       const isNewLogin = checkLoginBonus();
       if (isNewLogin) {
         setShowDailyBonus(true);
+      }
+      
+      // Schedule notifications if enabled
+      if (p?.notifications) {
+        notificationService.scheduleDailyReminder(9, 0);
+        notificationService.scheduleStreakReminder();
       }
     }
     loadData();
@@ -135,13 +175,13 @@ export default function Dashboard() {
 
     if (quests.length === 0) {
       return {
-        message: "Bereit für neue Abenteuer? Würfle uns ein paar Quests aus!",
+        message: "Bereit für neue Abenteuer? Würfle eine neue Quest aus!",
         expression: 'thinking' as FoxExpression
       };
     }
 
     return {
-      message: `Auf geht's, ${name}! Schnapp dir die XP!`,
+      message: profile?.welcome_message || `Auf geht's, ${name}! Schnapp dir die XP!`,
       expression: 'idle' as FoxExpression
     };
   }, [profile, dailyBonusCollected, safeStats.streak, safeStats.coins, quests.length]);
@@ -170,19 +210,36 @@ export default function Dashboard() {
   };
 
   const handleRollQuests = async () => {
-    const rollCost = 50;
+    const rollCost = 10;
     if (safeStats.coins < rollCost) {
-      useAppStore.getState().showAlert("Nicht genug Blitze!", `Du brauchst ${rollCost} Blitze um 5 neue Quests zu würfeln.`);
+      useAppStore.getState().showAlert("Ebbe im Geldbeutel! 💸", `Du brauchst ${rollCost} Blitze, um eine neue Quest zu würfeln. Mach erst mal eine fertig!`);
       return;
     }
     
+    if (quests.length >= 5) {
+      useAppStore.getState().showAlert(
+        "Limit erreicht! 🛑",
+        "Du hast schon 5 Quests am Start. Welche soll für die neue weichen?",
+        [
+          ...quests.map((q, i) => ({
+            text: `${i + 1}: ${q.title.substring(0, 20)}...`,
+            onPress: async () => {
+              await handleReplaceQuest(i);
+            }
+          })),
+          { text: "Lass mal", style: "cancel" }
+        ]
+      );
+      return;
+    }
+
     useAppStore.getState().showAlert(
-      "Quests neu würfeln",
-      "Das kostet 50 Blitze. Alle aktuellen Quests werden durch 5 neue ersetzt.",
+      "Neue Quest gefällig? 🎲",
+      `Das kostet dich ${rollCost} Blitze. Bereit für ein neues Abenteuer?`,
       [
-        { text: "Abbrechen", style: "cancel" },
+        { text: "Nee, passt", style: "cancel" },
         { 
-          text: "Würfeln", 
+          text: "Let's go!", 
           onPress: async () => {
             const success = await rollQuests();
             if (success) {
@@ -219,34 +276,34 @@ export default function Dashboard() {
   const handleGenerateCustomQuest = async () => {
     if (aiCooldownUntil && Date.now() < aiCooldownUntil) {
       const remaining = Math.ceil((aiCooldownUntil - Date.now()) / 1000);
-      useAppStore.getState().showAlert("KI Cooldown", `Bitte warte noch ${remaining} Sekunden, bevor du die KI erneut nutzt.`);
+      useAppStore.getState().showAlert("KI macht gerade Pause ☕", `Gönn der KI noch ${remaining} Sekunden Pause, dann ist sie wieder am Start!`);
       return;
     }
     if (!customGoal.trim()) {
-      useAppStore.getState().showAlert("Fehler", "Bitte beschreibe, was du erreichen möchtest!");
+      useAppStore.getState().showAlert("Huch? 🤔", "Du musst mir schon sagen, was du vorhast, damit ich dir 'ne Quest basteln kann!");
       return;
     }
     
     if (aiQuests.length >= 5) {
       setShowCustomModal(false);
       useAppStore.getState().showAlert(
-        "KI-Quest ersetzen",
-        "Du hast bereits 5 KI-Quests. Welche möchtest du ersetzen?",
+        "KI-Limit voll! 🤖",
+        "Du hast schon 5 KI-Quests. Welche soll ich für die neue kicken?",
         [
           ...aiQuests.map((q, i) => ({
-            text: `${i + 1}: ${q.title}`,
+            text: `${i + 1}: ${q.title.substring(0, 20)}...`,
             onPress: async () => {
               await handleReplaceAiQuest(i);
             }
           })),
-          { text: "Abbrechen", style: "cancel" }
+          { text: "Lass stecken", style: "cancel" }
         ]
       );
       return;
     }
     
     if (safeStats.coins < 50) {
-      useAppStore.getState().showAlert("Nicht genug Blitze!", "Du brauchst 50 Blitze für eine KI-Quest.");
+      useAppStore.getState().showAlert("Zu wenig Blitze! ⚡", "Eine KI-Quest kostet 50 Blitze. Spar noch ein bisschen!");
       return;
     }
     
@@ -256,7 +313,7 @@ export default function Dashboard() {
     if (quest) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
-      useAppStore.getState().showAlert("Fehler", "Die KI konnte keine Quest erstellen.");
+      useAppStore.getState().showAlert("KI-Fail 😵", "Irgendwie konnte die KI gerade keine Quest ausspucken. Versuchs gleich nochmal!");
     }
     setCustomGoal("");
   };
@@ -288,28 +345,65 @@ export default function Dashboard() {
 
   const handleComplete = async () => {
     if (!selectedQuest || !image) {
-      useAppStore.getState().showAlert("Fehler", "Bitte mach zuerst ein Foto von deinem Beweis!");
+      useAppStore.getState().showAlert("Oje!", "Du musst schon ein Foto als Beweis hochladen! 📸");
       return;
     }
-    
+
+    // Modal sofort schließen
+    setShowModal(false);
+
+    showTemporaryAlert(
+      "Check läuft... 🦊",
+      "Ich schau mir das kurz an! Kann bis zu 2 Minuten dauern, chill kurz!",
+      4000
+    );
+
     setIsValidating(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
+
     try {
       const result = await aiService.validateProof(image, selectedQuest.description);
       setIsValidating(false);
       if (result.isValid) {
         setAiFeedback(result.feedback);
-        setShowSuccess(true);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        completeQuest(selectedQuest.title);
+        useAppStore.getState().showAlert(
+          "Mega! Quest geschafft! 🎉",
+          result.feedback || "Stabil, du hast es durchgezogen!",
+          [
+            {
+              text: "Nice!",
+              onPress: closeQuestDetailAndReset,
+            }
+          ]
+        );
       } else {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        useAppStore.getState().showAlert("KI Check", result.feedback);
+        useAppStore.getState().showAlert(
+          "Schade, fast! 🙊",
+          result.feedback || "Dein Beweis hat mich noch nicht ganz überzeugt. Probier's nochmal!",
+          [
+            {
+              text: "Okay, mach ich!",
+              onPress: closeQuestDetailAndReset,
+            }
+          ]
+        );
       }
     } catch (error) {
       setIsValidating(false);
-      useAppStore.getState().showAlert("Quest erledigt!", "Deine Quest wurde erfolgreich abgeschlossen!");
-      setShowSuccess(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      useAppStore.getState().showAlert(
+        "KI-Schluckauf 😵‍💫",
+        "Irgendetwas lief bei der Prüfung schief. Versuch's einfach nochmal!",
+        [
+          {
+            text: "Alles klar",
+            onPress: closeQuestDetailAndReset,
+          }
+        ]
+      );
     }
   };
 
@@ -325,7 +419,7 @@ export default function Dashboard() {
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <View style={s.header}>
         <View>
-          <Text style={s.greeting}>WILLKOMMEN ZURÜCK,</Text>
+          <Text style={s.greeting}>{profile?.hero_title?.toUpperCase() || 'WILLKOMMEN ZURÜCK,'}</Text>
           <View style={s.titleRow}>
             <Text style={s.titleText}>{profile?.nickname || 'Held'}</Text>
             <Crown size={22} color={isNeon ? "#00F0FF" : "#FFD700"} fill={isNeon ? "#00F0FF" : "#FFD700"} />
@@ -422,8 +516,8 @@ export default function Dashboard() {
           <View style={s.questButtonsRow}>
             <TouchableOpacity style={s.questBtn} onPress={handleRollQuests}>
               <Dice5 color={isNeon ? "#00F0FF" : "#FF7F24"} size={28} />
-              <Text style={s.questBtnText}>5 NEUE QUESTS</Text>
-              <Text style={s.questBtnCost}>50 ⚡</Text>
+              <Text style={s.questBtnText}>1 NEUE QUEST</Text>
+              <Text style={s.questBtnCost}>10 ⚡</Text>
             </TouchableOpacity>
             {aiMode !== 'off' && (
               <TouchableOpacity 

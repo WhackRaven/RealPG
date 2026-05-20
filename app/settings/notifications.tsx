@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, SafeAreaView, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { getUserProfile, saveUserProfile } from '@/src/services/db';
 import { useTheme } from '@/src/context/ThemeContext';
 import { ChevronLeft, Bell, Clock, Zap, Calendar, Trophy } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useAppStore } from '@/src/store/useAppStore';
+import { notificationService } from '@/src/services/notifications';
 
 interface NotificationSettings {
   daily_reminder: boolean;
@@ -27,13 +29,66 @@ export default function NotificationsSettings() {
   });
   const s = isDark ? stylesDark : stylesLight;
 
+  useEffect(() => {
+    async function loadSettings() {
+      const profile = await getUserProfile();
+      if (profile) {
+        setSettings(prev => ({
+          ...prev,
+          daily_reminder: profile.notifications,
+          // Other settings would ideally come from a more detailed table, 
+          // but for now we'll stick to what we have in the profile.
+        }));
+      }
+    }
+    loadSettings();
+  }, []);
+
   const toggleSetting = (key: keyof NotificationSettings) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSettings(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const handleTimeChange = () => {
+    // This would ideally open a time picker, but for now we'll simulate a 9:00 default
+    // or let the user click a text field.
+    Alert.prompt(
+      "Zeit festlegen",
+      "Wann soll ich dich erinnern? (HH:mm)",
+      [
+        { text: "Abbrechen", style: "cancel" },
+        { 
+          text: "Speichern", 
+          onPress: (time?: string) => {
+            if (time && /^([01]\d|2[0-3]):([0-5]\d)$/.test(time)) {
+              setSettings(prev => ({ ...prev, reminder_time: time }));
+            } else {
+              Alert.alert("Ungültiges Format", "Bitte nutze HH:mm (z.B. 09:00)");
+            }
+          }
+        }
+      ],
+      "plain-text",
+      settings.reminder_time
+    );
+  };
+
   const handleSave = async () => {
+    // Save to DB
     await saveUserProfile({ notifications: settings.daily_reminder });
+    
+    // Update notification scheduling
+    if (settings.daily_reminder) {
+      const [hour, minute] = settings.reminder_time.split(':').map(Number);
+      await notificationService.scheduleDailyReminder(hour, minute);
+      
+      if (settings.streak_reminder) {
+        await notificationService.scheduleStreakReminder();
+      }
+    } else {
+      await notificationService.cancelAll();
+    }
+
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     useAppStore.getState().showAlert("Gespeichert!", "Deine Benachrichtigungseinstellungen wurden aktualisiert.", [
       { text: "OK", onPress: () => router.back() }
@@ -41,7 +96,7 @@ export default function NotificationsSettings() {
   };
 
   return (
-    <SafeAreaView style={s.container}>
+    <SafeAreaView style={s.container} edges={['top']}>
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.backButton}>
           <ChevronLeft color={isDark ? '#F1F5F9' : '#4B4B4B'} size={28} />

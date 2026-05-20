@@ -57,18 +57,17 @@ export default function Summary() {
         <Text style={styles.title}>Zusammenfassung</Text>
         
         <FoxMascot 
-          message="Das sieht super aus! Bist du bereit für dein erstes Abenteuer?" 
+          message={profile?.welcome_message || "Das sieht super aus! Bist du bereit für dein erstes Abenteuer?"} 
           expression="success" 
         />
 
         <View style={styles.card}>
+          <SummaryItem label="Heldentitel" value={profile?.hero_title || 'Held des Alltags'} isHero />
           <SummaryItem label="Nickname" value={profile?.nickname || 'Held'} />
-          <SummaryItem label="Alter" value={profile?.age || '-'} />
-          <SummaryItem label="Interessen" value={profile?.hobbies || '-'} />
-          <SummaryItem label="Motivation" value={profile?.motivation || '-'} />
-          <SummaryItem label="Level" value={profile?.quest_level || '-'} />
-          <SummaryItem label="Tägliche Zeit" value={profile?.daily_time || '-'} />
-          <SummaryItem label="Push-Benachrichtigungen" value={profile?.notifications ? 'Aktiviert' : 'Deaktiviert'} />
+          <SummaryItem label="Persönlichkeit" value={profile?.personality_type || 'Abenteurer'} />
+          <SummaryItem label="Primär-Fokus" value={profile?.primary_category || '-'} />
+          <SummaryItem label="Sport-Level" value={profile?.sport_level || 'beginner'} />
+          <SummaryItem label="Lern-Level" value={profile?.learning_level || 'beginner'} />
         </View>
 
       </ScrollView>
@@ -83,11 +82,11 @@ export default function Summary() {
   );
 }
 
-function SummaryItem({ label, value }: { label: string, value: string }) {
+function SummaryItem({ label, value, isHero }: { label: string, value: string, isHero?: boolean }) {
   return (
     <View style={styles.item}>
       <Text style={styles.label}>{label}</Text>
-      <Text style={styles.value}>{value || '-'}</Text>
+      <Text style={[styles.value, isHero && styles.heroValue]}>{value || '-'}</Text>
     </View>
   );
 }
@@ -131,6 +130,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontFamily: 'System',
     color: '#4B4B4B',
+  },
+  heroValue: {
+    color: '#FF7F24',
+    fontSize: 22,
+    fontWeight: '900',
   },
   footer: {
     padding: 24,

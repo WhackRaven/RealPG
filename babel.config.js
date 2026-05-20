@@ -3,6 +3,14 @@ module.exports = function (api) {
   const isWeb = process.env.EXPO_PLATFORM === 'web';
   return {
     presets: ['babel-preset-expo'],
-    plugins: isWeb ? [] : ['react-native-reanimated/plugin']
+    plugins: isWeb ? [] : [
+      ['module-resolver', {
+        root: ['./'],
+        alias: {
+          '@': './'
+        }
+      }],
+      'react-native-reanimated/plugin'
+    ]
   };
 };

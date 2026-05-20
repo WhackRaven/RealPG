@@ -36,6 +36,9 @@ export interface UserProfile {
   wellbeing_level: string;
   primary_category: string;
   secondary_categories: string;
+  hero_title: string;
+  personality_type: string;
+  welcome_message: string;
 }
 
 const defaultProfile: UserProfile = {
@@ -56,7 +59,10 @@ const defaultProfile: UserProfile = {
   social_level: 'beginner',
   wellbeing_level: 'beginner',
   primary_category: 'Sport',
-  secondary_categories: ''
+  secondary_categories: '',
+  hero_title: 'Held des Alltags',
+  personality_type: 'achiever',
+  welcome_message: 'Willkommen zurück, Buddy!'
 };
 
 export const initDb = async () => {
@@ -91,7 +97,10 @@ export const initDb = async () => {
       social_level TEXT DEFAULT 'beginner',
       wellbeing_level TEXT DEFAULT 'beginner',
       primary_category TEXT DEFAULT 'Sport',
-      secondary_categories TEXT DEFAULT ''
+      secondary_categories TEXT DEFAULT '',
+      hero_title TEXT DEFAULT 'Held des Alltags',
+      personality_type TEXT DEFAULT 'achiever',
+      welcome_message TEXT DEFAULT 'Willkommen zurück, Buddy!'
     );
   `);
   

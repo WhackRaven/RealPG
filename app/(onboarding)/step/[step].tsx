@@ -91,7 +91,7 @@ export default function OnboardingStep() {
       if (stepIndex < QUESTIONS.length - 1) {
         router.push(`/step/${stepIndex + 2}`);
       } else {
-        router.push('/summary');
+        router.push('/analysis');
       }
     } catch (err) {
       console.error('Failed to save:', err);

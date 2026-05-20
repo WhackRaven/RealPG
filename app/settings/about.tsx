@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, SafeAreaView, ScrollView, TouchableOpacity, Linking, TextInput, Alert } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Linking, TextInput, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/src/context/ThemeContext';
 import { useAppStore } from '@/src/store/useAppStore';
@@ -35,7 +36,7 @@ export default function AboutSettings() {
   };
 
   return (
-    <SafeAreaView style={s.container}>
+    <SafeAreaView style={s.container} edges={['top']}>
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.backButton}>
           <ChevronLeft color={isDark ? '#F1F5F9' : '#4B4B4B'} size={28} />
@@ -152,7 +153,7 @@ function TechBadge({ text }: { text: string }) {
 
 const stylesLight = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 2, borderBottomColor: '#F2F2F2' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, paddingHorizontal: 20, paddingBottom: 16, borderBottomWidth: 2, borderBottomColor: '#F2F2F2' },
   backButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   title: { fontSize: 18, fontWeight: '900', color: '#4B4B4B' },
   content: { padding: 24, alignItems: 'center' },
@@ -187,7 +188,7 @@ const stylesLight = StyleSheet.create({
 
 const stylesDark = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0F172A' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 2, borderBottomColor: '#334155' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, paddingHorizontal: 20, paddingBottom: 16, borderBottomWidth: 2, borderBottomColor: '#334155' },
   backButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   title: { fontSize: 18, fontWeight: '900', color: '#F1F5F9' },
   content: { padding: 24, alignItems: 'center' },

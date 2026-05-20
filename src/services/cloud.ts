@@ -39,25 +39,41 @@ export interface LeaderboardEntry {
 export const cloudService = {
   async getMyProfile(): Promise<UserProfile | null> {
     try {
-      const { data, error } = await supabase.from('user_profiles').select('*').single();
+      const { data: authData } = await supabase.auth.getUser();
+      const userId = authData?.user?.id;
+      if (!userId) return null;
+      const { data, error } = await supabase.from('user_profiles').select('*').eq('id', userId).single();
       if (error) return null;
       return data as UserProfile;
-    } catch {
+    } catch (err) {
+      console.error('getMyProfile error:', err);
       return null;
     }
   },
 
   async getOrCreateProfile(_userId: string, nickname: string): Promise<UserProfile | null> {
-    const { data: created } = await supabase.rpc('ensure_profile', {
-      p_nickname: nickname || 'Held',
-    });
+    try {
+      const { data: created, error } = await supabase.rpc('ensure_profile', {
+        p_nickname: nickname || 'Held',
+      });
 
-    if (created) {
-      return created as UserProfile;
+      if (error) {
+        console.warn('ensure_profile rpc error:', error);
+      }
+
+      // fetch current user's profile
+      const { data } = await supabase.from('user_profiles').select('*').single();
+      const profile = data as UserProfile | null;
+      if (profile && !profile.invite_code) {
+        await this.generateInviteCode();
+        const { data: refreshed } = await supabase.from('user_profiles').select('*').single();
+        return refreshed as UserProfile | null;
+      }
+      return profile;
+    } catch (err) {
+      console.error('getOrCreateProfile error:', err);
+      return null;
     }
-
-    const { data } = await supabase.from('user_profiles').select('*').single();
-    return (data as UserProfile | null) ?? null;
   },
 
   async updateProfile(userId: string, stats: { level: number; xp?: number; coins?: number; quests_completed: number; streak: number; title: string; nickname?: string }): Promise<boolean> {
@@ -85,8 +101,11 @@ export const cloudService = {
         .eq('invite_code', inviteCode.toUpperCase())
         .single();
 
-      if (error) return null;
-      return data;
+      if (error) {
+        console.error('getProfileByCode error:', error);
+        return null;
+      }
+      return data as UserProfile | null;
     } catch {
       return null;
     }
@@ -94,12 +113,55 @@ export const cloudService = {
 
   async sendFriendRequestByCode(inviteCode: string): Promise<boolean> {
     try {
+      // Try RPC first (if DB has the function)
       const { error } = await supabase.rpc('send_friend_request', {
         p_invite_code: inviteCode.toUpperCase(),
       });
-      return !error;
+      if (!error) return true;
+      console.warn('send_friend_request rpc error, falling back:', error);
+    } catch (rpcErr) {
+      console.warn('RPC send_friend_request not available, falling back', rpcErr);
+    }
+
+    // Fallback: insert into friend_requests directly
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const fromUserId = authData?.user?.id;
+      if (!fromUserId) return false;
+
+      const target = await this.getProfileByCode(inviteCode);
+      if (!target) return false;
+      if (target.id === fromUserId) return false;
+
+      // prevent duplicate pending requests
+      const { data: existing } = await supabase
+        .from('friend_requests')
+        .select('id')
+        .eq('from_user_id', fromUserId)
+        .eq('to_user_id', target.id)
+        .eq('status', 'pending')
+        .limit(1)
+        .single();
+
+      if (existing) return false;
+
+      const { error: insErr } = await supabase.from('friend_requests').insert({
+        from_user_id: fromUserId,
+        to_user_id: target.id,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+      });
+
+      if (insErr) {
+        console.error('Fallback insert friend_request failed:', insErr);
+        return false;
+      }
+
+      // Optionally notify
+      await this.notifyFriendRequest(target.id, fromUserId);
+      return true;
     } catch (error) {
-      console.error('Send friend request error:', error);
+      console.error('Send friend request fallback error:', error);
       return false;
     }
   },
@@ -184,11 +246,11 @@ export const cloudService = {
           id: entry.id,
           user_id: entry.from_user_id,
           friend_id: userId,
-          friend_nickname: p?.nickname ?? 'Unknown',
+          friend_nickname: p?.nickname ?? 'Unbekannt',
           friend_level: p?.level ?? 1,
           friend_quests: p?.quests_completed ?? 0,
           friend_streak: p?.streak ?? 0,
-          friend_title: p?.title ?? 'Anfaenger',
+          friend_title: p?.title ?? 'Anfänger',
           status: 'pending' as const,
           created_at: entry.created_at,
         };
@@ -223,15 +285,37 @@ export const cloudService = {
     }
   },
 
-  generateInviteCode(): string {
-    return '';
+  async generateInviteCode(): Promise<string | null> {
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const userId = authData?.user?.id;
+      if (!userId) return null;
+
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      for (let attempt = 0; attempt < 6; attempt++) {
+        let code = '';
+        for (let i = 0; i < 8; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+        code = code.toUpperCase();
+
+        // ensure unique
+        const { data: exists } = await supabase.from('user_profiles').select('id').eq('invite_code', code).limit(1).single();
+        if (exists) continue;
+
+        const { error } = await supabase.from('user_profiles').update({ invite_code: code, updated_at: new Date().toISOString() }).eq('id', userId);
+        if (!error) return code;
+      }
+      return null;
+    } catch (error) {
+      console.error('generateInviteCode error:', error);
+      return null;
+    }
   },
 
   async notifyFriendRequest(userId: string, fromUserId: string) {
     console.log('Notification: Friend request from', fromUserId, 'to', userId);
   },
 
-  async subscribeToFriendUpdates(userId: string, callback: (friends: CloudFriend[]) => void) {
+  subscribeToFriendUpdates(userId: string, callback: (friends: CloudFriend[]) => void) {
     const channel = supabase
       .channel('friends')
       .on('postgres_changes', {
@@ -241,8 +325,9 @@ export const cloudService = {
         filter: `to_user_id=eq.${userId}`,
       }, async () => {
         callback(await this.getFriends(userId));
-      })
-      .subscribe();
+      });
+
+    channel.subscribe();
 
     return () => {
       supabase.removeChannel(channel);

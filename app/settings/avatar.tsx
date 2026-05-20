@@ -24,7 +24,7 @@ export default function AvatarSelection() {
   const s = isDark ? stylesDark : stylesLight;
 
   return (
-    <SafeAreaView style={s.container}>
+    <SafeAreaView style={s.container} edges={['top']}>
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.backButton}>
           <ChevronLeft color={isDark ? '#F1F5F9' : '#4B4B4B'} size={28} />
@@ -81,7 +81,7 @@ export default function AvatarSelection() {
 
 const stylesLight = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 20 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 12, paddingHorizontal: 20, paddingBottom: 16 },
   backButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
   title: { fontSize: 18, fontWeight: '900', color: '#4B4B4B' },
   avatarDisplay: { alignItems: 'center', padding: 30, backgroundColor: '#F9F9F9', borderRadius: 30, margin: 20 },
@@ -98,7 +98,7 @@ const stylesLight = StyleSheet.create({
 
 const stylesDark = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0F172A' },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 20 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 12, paddingHorizontal: 20, paddingBottom: 16 },
   backButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
   title: { fontSize: 18, fontWeight: '900', color: '#F1F5F9' },
   avatarDisplay: { alignItems: 'center', padding: 30, backgroundColor: '#1E293B', borderRadius: 30, margin: 20 },

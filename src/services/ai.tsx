@@ -125,11 +125,21 @@ function extractJsonObject(raw: string): any | null {
 
 async function callFreeAI(prompt: string, imageBase64?: string): Promise<string | null> {
   try {
-    const messages: any[] = [{ role: 'user', content: prompt }];
+    const messages: any[] = [];
     
-    // Pollinations text endpoint supports basic text, we'll try to describe the need for validation if an image is present
     if (imageBase64) {
-      messages.push({ role: 'system', content: 'Dies ist eine Bild-Validierungsanfrage. Gehe davon aus, dass das Bild passend ist, es sei denn der Prompt sagt etwas anderes. Antworte immer streng im geforderten JSON Format.' });
+      messages.push({
+        role: 'user',
+        content: [
+          { type: 'text', text: prompt },
+          {
+            type: 'image_url',
+            image_url: `data:image/jpeg;base64,${imageBase64}`
+          }
+        ]
+      });
+    } else {
+      messages.push({ role: 'user', content: prompt });
     }
 
     const response = await fetch('https://text.pollinations.ai/openai', {
@@ -137,10 +147,17 @@ async function callFreeAI(prompt: string, imageBase64?: string): Promise<string 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         messages,
+        model: 'openai',
         jsonMode: true,
       })
     });
     
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log('Pollinations API error:', response.status, errorText);
+      return null;
+    }
+
     const data = await response.json();
     return data.choices?.[0]?.message?.content || null;
   } catch (error) {
@@ -222,18 +239,34 @@ async function validateWithAI(base64Image: string, questDescription: string): Pr
   if (!base64Image) {
     return { isValid: false, feedback: 'Bitte füge zuerst einen Beweis hinzu! 📸' };
   }
-  const prompt = `Prüfe, ob das Bild diese Quest erfüllt: "${questDescription}".
-Antworte nur als JSON: {"isValid":true|false,"feedback":"Kurzes Feedback auf Deutsch (max 2 Sätze)"}`;
+  const prompt = `Hier ist der Quest-Beweis. Das Bild wurde als Base64-Data-URL angehängt.
+Prüfe, ob dieses Bild wirklich zeigt, dass die Quest erfüllt wurde:
+"${questDescription}"
+Antworte ausschließlich im gültigen JSON-Format ohne Erklärungen:
+{"isValid":true|false,"feedback":"Kurzes Feedback auf Deutsch, maximal 2 Sätze"}
+Wenn du das Bild nicht eindeutig als erfolgreich ansehen kannst, gib bitte false zurück.`;
+  
   const responseText = await callFreeAI(prompt, base64Image);
   const response = responseText ? extractJsonObject(responseText) : null;
+  
   if (response && typeof response.isValid === 'boolean') {
+    const text = String(response.feedback || 'Super erledigt!');
+    if (/can'?t see|nicht sehen|kein bild|keine bild|bild nicht/i.test(text)) {
+      return {
+        isValid: false,
+        feedback: 'Die KI konnte das Bild nicht eindeutig auswerten. Bitte lade ein klareres Foto hoch.',
+      };
+    }
     return {
       isValid: response.isValid,
-      feedback: String(response.feedback || 'Gut gemacht!'),
+      feedback: text,
     };
   }
 
-  return { isValid: true, feedback: 'Quest erledigt! 🚀 Sehr gut gemacht!' };
+  return { 
+    isValid: false, 
+    feedback: 'Die KI konnte den Beweis nicht auswerten. Bitte versuche es erneut mit einem deutlicheren Foto.' 
+  };
 }
 
 export const aiService = {
@@ -258,4 +291,33 @@ export const aiService = {
   async generateCustomQuest(goal: string): Promise<GeneratedQuest | null> {
     return generateAIQuest(goal);
   },
+
+  async analyzeProfile(userData: any): Promise<{
+    heroTitle: string;
+    personalityType: string;
+    suggestedLevels: Record<string, 'beginner' | 'intermediate' | 'advanced'>;
+    primaryCategory: string;
+    welcomeMessage: string;
+  } | null> {
+    const prompt = `Analysiere diese User-Daten und erstelle ein Spieler-Profil für ein Real-Life RPG:
+${JSON.stringify(userData)}
+
+Antworte NUR als JSON:
+{
+  "heroTitle": "z.B. Disziplinierter Krieger",
+  "personalityType": "competitor|zen|achiever|socializer",
+  "suggestedLevels": {
+    "sport_level": "beginner|intermediate|advanced",
+    "learning_level": "beginner|intermediate|advanced",
+    "household_level": "beginner|intermediate|advanced",
+    "social_level": "beginner|intermediate|advanced",
+    "wellbeing_level": "beginner|intermediate|advanced"
+  },
+  "primaryCategory": "Sport|Lernen|Haushalt|Social|Sonstiges",
+  "welcomeMessage": "Eine coole, kurze Begrüßung vom Fox-Buddy (Jugendsprache)"
+}`;
+
+    const responseText = await callFreeAI(prompt);
+    return responseText ? extractJsonObject(responseText) : null;
+  }
 };

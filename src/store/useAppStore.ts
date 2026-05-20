@@ -1,12 +1,15 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { NativeModules } from 'react-native';
 import { aiService, GeneratedQuest } from '@/src/services/ai';
 import { getUserProfile, saveUserProfile } from '@/src/services/db';
 import { generateQuests, UserLevels, UserLevel, PrioritySettings, defaultUserLevels } from '@/src/data/standardQuests';
 import { gameCloudService } from '@/src/services/gameCloud';
+import { ACHIEVEMENTS } from '@/src/services/achievements';
+import { notificationService } from '../services/notifications';
 
-const ROLL_COST = 50;
+const ROLL_COST = 10;
 const CUSTOM_QUEST_COST = 50;
 const MAX_NORMAL_QUESTS = 5;
 const MAX_AI_QUESTS = 5;
@@ -127,7 +130,7 @@ interface AppState {
   cloudFriendRequests: any[];
   cloudLeaderboard: any[];
   cloudInviteCode: string | null;
-  aiMode: 'cloud';
+  aiMode: 'cloud' | 'off' | null;
   syncToCloud: () => Promise<void>;
   loadCloudFriends: () => Promise<void>;
   loadCloudFriendRequests: () => Promise<void>;
@@ -136,7 +139,7 @@ interface AppState {
   loadCloudIdentity: () => Promise<void>;
   acceptCloudFriendRequest: (requestId: string) => Promise<boolean>;
   declineCloudFriendRequest: (requestId: string) => Promise<boolean>;
-  setAIMode: (mode: 'cloud') => void;
+  setAIMode: (mode: 'cloud' | 'off' | null) => void;
   alertState: { visible: boolean; title: string; message: string; buttons?: any[] };
   showAlert: (title: string, message?: string, buttons?: any[]) => void;
   hideAlert: () => void;
@@ -307,8 +310,10 @@ export const useAppStore = create<AppState>()(
           if (lastDate === today) {
           } else if (lastDate === getYesterday()) {
             newStreak += 1;
+            notificationService.sendStreakSafeNotification(newStreak);
           } else {
             newStreak = 1;
+            notificationService.sendStreakSafeNotification(1);
           }
           
           const xpBonus = state.hasActiveBuff('xp_boost') ? 1.5 : 1;
@@ -328,6 +333,9 @@ export const useAppStore = create<AppState>()(
               lastQuestDate: today,
             }
           }));
+          if (NativeModules.RealPGWidget?.updateStreak) {
+            NativeModules.RealPGWidget.updateStreak(newStreak).catch(() => {});
+          }
           
           checkAchievements({ stats: get().stats, categoryStats: get().categoryStats, unlockAchievement: get().unlockAchievement } as any);
         }
@@ -337,10 +345,10 @@ export const useAppStore = create<AppState>()(
         const today = getToday();
         const lastDate = get().stats.lastQuestDate;
         if (lastDate !== today) {
-          if (lastDate === getYesterday()) {
-            set((state) => ({ stats: { ...state.stats, streak: state.stats.streak + 1, lastQuestDate: today } }));
-          } else {
-            set((state) => ({ stats: { ...state.stats, streak: 1, lastQuestDate: today } }));
+          const nextStreak = lastDate === getYesterday() ? get().stats.streak + 1 : 1;
+          set((state) => ({ stats: { ...state.stats, streak: nextStreak, lastQuestDate: today } }));
+          if (NativeModules.RealPGWidget?.updateStreak) {
+            NativeModules.RealPGWidget.updateStreak(nextStreak).catch(() => {});
           }
         }
       },
@@ -362,10 +370,16 @@ export const useAppStore = create<AppState>()(
       },
 
       unlockAchievement: (id) => {
-        set((state) => {
-          if (state.unlockedAchievements.includes(id)) return state;
-          return { unlockedAchievements: [...state.unlockedAchievements, id], newlyUnlockedAchievement: id };
-        });
+        const state = get();
+        if (state.unlockedAchievements.includes(id)) return;
+        
+        set({ unlockedAchievements: [...state.unlockedAchievements, id], newlyUnlockedAchievement: id });
+        
+        // Trigger notification
+        const achievement = ACHIEVEMENTS.find(a => a.id === id);
+        if (achievement) {
+          notificationService.sendAchievementNotification(achievement.title);
+        }
       },
 
       clearNewAchievement: () => {
@@ -378,6 +392,10 @@ export const useAppStore = create<AppState>()(
           return false;
         }
         
+        if (state.quests.length >= MAX_NORMAL_QUESTS) {
+          return false; // UI handles replacement choice
+        }
+
         const profile = await getUserProfile();
         const userLevels: UserLevels = {
           sport_level: (profile?.sport_level as UserLevel) || 'beginner',
@@ -392,14 +410,19 @@ export const useAppStore = create<AppState>()(
           secondary: profile?.secondary_categories ? profile.secondary_categories.split(',') : [],
         };
         
-        const newIndex = state.questPoolIndex + 5;
-        const newQuests = generateQuests(5, state.questPoolIndex, userLevels, priorities);
+        const newIndex = state.questPoolIndex + 1;
+        const newQuests = generateQuests(1, state.questPoolIndex, userLevels, priorities);
         
         set({
           stats: { ...state.stats, coins: state.stats.coins - ROLL_COST, totalCoinsSpent: state.stats.totalCoinsSpent + ROLL_COST },
           questPoolIndex: newIndex % 1000,
-          quests: newQuests,
+          quests: [...state.quests, ...newQuests],
         });
+        
+        // Trigger notification
+        if (newQuests.length > 0) {
+          notificationService.sendQuestNotification(newQuests[0].title);
+        }
         return true;
       },
 
@@ -839,10 +862,37 @@ export const useAppStore = create<AppState>()(
         if (!state.userId || state.accountType !== 'cloud') return false;
 
         try {
+          // accept full URLs or raw codes
+          let clean = code || '';
+          try {
+            const url = new URL(clean);
+            // path like /i/CODE/... -> extract second segment
+            const segs = url.pathname.split('/').filter(Boolean);
+            if (segs.length >= 2) clean = segs[1];
+            else if (url.searchParams.get('code')) clean = url.searchParams.get('code') || clean;
+          } catch (err) {
+            // not a full URL
+            // maybe passed as realpg://i/CODE or similar
+            const m = clean.match(/([A-Z0-9]{6,})/i);
+            if (m) clean = m[1].toUpperCase();
+          }
+
+          clean = clean.trim().toUpperCase();
+          if (!clean) return false;
+
           const { cloudService } = await import('@/src/services/cloud');
-          const profile = await cloudService.getProfileByCode(code);
+          const profile = await cloudService.getProfileByCode(clean);
           if (!profile || profile.id === state.userId) return false;
-          return await cloudService.sendFriendRequestByCode(code);
+          const ok = await cloudService.sendFriendRequestByCode(clean);
+          if (ok) {
+            // refresh pending requests and friends
+            await get().loadCloudFriendRequests();
+            await get().loadCloudFriends();
+            get().showAlert('Freundschaftsanfrage gesendet', `Anfrage an ${profile.nickname} gesendet.`);
+          } else {
+            get().showAlert('Fehler', 'Die Anfrage konnte nicht gesendet werden.');
+          }
+          return ok;
         } catch (e) {
           console.log('Add friend error:', e);
           return false;
@@ -856,7 +906,12 @@ export const useAppStore = create<AppState>()(
           const { cloudService } = await import('@/src/services/cloud');
           const profile = await cloudService.getMyProfile();
           if (profile) {
-            set({ cloudInviteCode: profile.invite_code });
+            if (!profile.invite_code) {
+              const newCode = await cloudService.generateInviteCode();
+              set({ cloudInviteCode: newCode || null });
+            } else {
+              set({ cloudInviteCode: profile.invite_code });
+            }
           }
         } catch (e) {
           console.log('Load cloud identity error:', e);

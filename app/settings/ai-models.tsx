@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/src/context/ThemeContext';
 import { useAppStore } from '@/src/store/useAppStore';
@@ -13,7 +14,7 @@ export default function AISettingsScreen() {
   const s = isDark ? stylesDark : stylesLight;
 
   return (
-    <SafeAreaView style={s.container}>
+    <SafeAreaView style={s.container} edges={['top']}>
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.backButton}>
           <ChevronLeft color={isDark ? "#94A3B8" : "#AFAFAF"} size={28} />
@@ -48,7 +49,7 @@ export default function AISettingsScreen() {
 
 const stylesLight = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 60, backgroundColor: '#FFFFFF', borderBottomWidth: 2, borderBottomColor: '#F2F2F2' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, paddingHorizontal: 20, paddingBottom: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 2, borderBottomColor: '#F2F2F2' },
   backButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
   placeholder: { width: 44 },
   title: { fontSize: 18, fontWeight: '900', color: '#4B4B4B' },
@@ -66,7 +67,7 @@ const stylesLight = StyleSheet.create({
 
 const stylesDark = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0F172A' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 60, backgroundColor: '#0F172A', borderBottomWidth: 2, borderBottomColor: '#334155' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, paddingHorizontal: 20, paddingBottom: 16, backgroundColor: '#0F172A', borderBottomWidth: 2, borderBottomColor: '#334155' },
   backButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
   placeholder: { width: 44 },
   title: { fontSize: 18, fontWeight: '900', color: '#F1F5F9' },

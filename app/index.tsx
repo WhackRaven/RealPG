@@ -19,40 +19,44 @@ interface DeepLinkData {
 
 function parseDeepLink(path: string): DeepLinkData | null {
   if (!path) return null;
-  
-  const parts = path.split('/').filter(p => p);
-  if (parts.length < 1) return null;
-  
-  const type = parts[0];
-  
+
+  // support full URL or path with query params
+  const [rawPath, rawQuery] = path.split('?');
+  const parts = (rawPath || path).split('/').filter(p => p);
+  const query = rawQuery ? Object.fromEntries(new URLSearchParams(rawQuery)) : {};
+
+  if (parts.length === 0 && Object.keys(query).length === 0) return null;
+
+  const type = parts[0] || query.type || 'invite';
+
   if (type === 'share') {
     if (parts.length >= 5) {
-      return { 
+      return {
         type: 'progress',
-        senderName: decodeURIComponent(parts[1] || 'Unbekannt'),
-        senderLevel: parseInt(parts[2]) || 1,
-        senderQuests: parseInt(parts[3]) || 0,
-        senderStreak: parseInt(parts[4]) || 0,
-        senderTitle: decodeURIComponent(parts[5] || 'Anfänger'),
+        senderName: decodeURIComponent(parts[1] || query.name || 'Unbekannt'),
+        senderLevel: parseInt(parts[2] || (query.level || '1')) || 1,
+        senderQuests: parseInt(parts[3] || (query.quests || '0')) || 0,
+        senderStreak: parseInt(parts[4] || (query.streak || '0')) || 0,
+        senderTitle: decodeURIComponent(parts[5] || query.title || 'Anfänger'),
       };
     }
     return { type: 'progress' };
   }
-  
+
   if (type === 'i' || type === 'invite' || type === 'add') {
-    const code = parts[1];
-    const senderName = parts[2] ? decodeURIComponent(parts[2]) : undefined;
-    const senderLevel = parts[3] ? parseInt(parts[3]) : undefined;
-    const senderQuests = parts[4] ? parseInt(parts[4]) : undefined;
-    const senderStreak = parts[5] ? parseInt(parts[5]) : undefined;
-    const senderTitle = parts[6] ? decodeURIComponent(parts[6]) : undefined;
+    const code = parts[1] || query.code || query.invite || undefined;
+    const senderName = parts[2] ? decodeURIComponent(parts[2]) : (query.name ? decodeURIComponent(query.name) : undefined);
+    const senderLevel = parts[3] ? parseInt(parts[3]) : (query.level ? parseInt(query.level) : undefined);
+    const senderQuests = parts[4] ? parseInt(parts[4]) : (query.quests ? parseInt(query.quests) : undefined);
+    const senderStreak = parts[5] ? parseInt(parts[5]) : (query.streak ? parseInt(query.streak) : undefined);
+    const senderTitle = parts[6] ? decodeURIComponent(parts[6]) : (query.title ? decodeURIComponent(query.title) : undefined);
     return { type: 'invite', code, senderName, senderLevel, senderQuests, senderStreak, senderTitle };
   }
-  
+
   if (type === 'friend') {
     return { type: 'friend' };
   }
-  
+
   return { type: 'invite' };
 }
 
