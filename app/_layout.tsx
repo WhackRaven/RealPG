@@ -17,7 +17,7 @@ export default function RootLayout() {
   return (
     <AppThemeProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ headerShown: false, animation: 'fade', contentStyle: { backgroundColor: colorScheme === 'dark' ? '#0F172A' : '#FFFFFF' } }}>
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colorScheme === 'dark' ? '#0F172A' : '#FFFFFF' } }}>
           <Stack.Screen name="index" />
           <Stack.Screen name="(onboarding)/welcome" />
           <Stack.Screen name="(onboarding)/step/[step]" />

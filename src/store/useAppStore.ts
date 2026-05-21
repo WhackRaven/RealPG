@@ -75,6 +75,8 @@ interface AppState {
   soundEnabled: boolean;
   darkMode: boolean;
   neonThemeEnabled: boolean;
+  twoFactorEnabled: boolean;
+  biometricAuthEnabled: boolean;
   questPoolIndex: number;
   userLevels: UserLevels;
   priorities: PrioritySettings;
@@ -101,6 +103,8 @@ interface AppState {
   toggleSound: () => void;
   toggleDarkMode: () => void;
   toggleNeonTheme: (enabled: boolean) => void;
+  toggleTwoFactor: () => void;
+  toggleBiometricAuth: () => void;
   unlockAchievement: (id: string) => void;
   clearNewAchievement: () => void;
   rollQuests: () => Promise<boolean>;
@@ -367,6 +371,22 @@ export const useAppStore = create<AppState>()(
 
       toggleNeonTheme: (enabled) => {
         set({ neonThemeEnabled: enabled });
+      },
+
+      toggleTwoFactor: () => {
+        set((state) => ({ twoFactorEnabled: !state.twoFactorEnabled }));
+      },
+
+      toggleBiometricAuth: () => {
+        set((state) => ({ biometricAuthEnabled: !state.biometricAuthEnabled }));
+      },
+
+      toggleTwoFactor: () => {
+        set((state) => ({ twoFactorEnabled: !state.twoFactorEnabled }));
+      },
+
+      toggleBiometricAuth: () => {
+        set((state) => ({ biometricAuthEnabled: !state.biometricAuthEnabled }));
       },
 
       unlockAchievement: (id) => {

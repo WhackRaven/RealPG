@@ -26,7 +26,6 @@ const REPLY_DB: Record<string, string[]> = {
     'Versuch mal, deine Quests am Morgen zu erledigen – da ist die Willenskraft am stärksten! ⏰',
     'Pro-Tipp: Kombiniere Quests! Sport + Social = Zusammen joggen gehen! 🏃‍♂️👫',
     'Mach ein Foto als Beweis – das gibt dir ein extra Erfolgsgefühl! 📸✨',
-    'Setze dir eine feste Uhrzeit für Quests. Gewohnheit = Superkraft! 💎',
   ],
   streak: [
     'Dein Streak ist dein mächtigstes Werkzeug! Halte ihn am Leben, egal wie klein die Quest ist! 🔥',
@@ -149,6 +148,7 @@ export default function Chatbot() {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
 
   useEffect(() => {
     if (!aiCooldownUntil) {
@@ -177,6 +177,18 @@ export default function Chatbot() {
       typingAnim.setValue(0);
     }
   }, [isLoading]);
+
+  // Keyboard listeners to adjust input position when keyboard opens/closes
+  useEffect(() => {
+    const onShow = (e: any) => setKeyboardOffset(e.endCoordinates?.height || 250);
+    const onHide = () => setKeyboardOffset(0);
+    const showSub = Keyboard.addListener('keyboardDidShow', onShow);
+    const hideSub = Keyboard.addListener('keyboardDidHide', onHide);
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const sendMessage = async () => {
     if (!inputText.trim() || isLoading) return;

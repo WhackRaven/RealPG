@@ -44,7 +44,8 @@
             "DEFAULT"
           ]
         }
-      ]
+      ],
+      "versionCode": 3
     },
     "web": {
       "output": "static",

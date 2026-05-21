@@ -6,7 +6,8 @@ import {
   TouchableOpacity,
   FlatList,
   Dimensions,
-  Alert
+  Alert,
+  Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -33,17 +34,17 @@ import * as Haptics from 'expo-haptics';
 const { width } = Dimensions.get('window');
 
 const SHOP_ITEMS = [
-  { id: 'legendary_avatar', name: 'Legendärer Fuchs', price: 100, icon: Ghost, color: '#FF7F24', category: 'Avatar', description: 'Ein mystischer Look für deinen Begleiter.' },
-  { id: 'golden_frame', name: 'Goldener Rahmen', price: 50, icon: Shield, color: '#FFD700', category: 'Style', description: 'Zeige allen deinen Reichtum.' },
-  { id: 'joker_card', name: 'Joker-Karte', price: 30, icon: Star, color: '#EC4899', category: 'Item', description: 'Überspringe eine Quest ohne XP-Verlust.' },
-  { id: 'neon_theme', name: 'Neon Theme', price: 200, icon: Palette, color: '#00CD00', category: 'Theme', description: 'Die App leuchtet in futuristischen Farben.' },
-  { id: 'xp_booster', name: 'XP Booster', price: 150, icon: Sparkles, color: '#3B82F6', category: 'Buff', description: 'Doppelte XP für die nächsten 3 Quests.' },
-  { id: 'coins_booster', name: 'Blitz-Booster', price: 100, icon: Zap, color: '#FF7F24', category: 'Buff', description: 'Mehr Blitze für abgeschlossene Aufgaben.' },
-  { id: 'streak_shield', name: 'Streak-Schild', price: 75, icon: Flame, color: '#EF4444', category: 'Item', description: 'Schützt deinen Streak für einen Tag.' },
-  { id: 'treasure_chest', name: 'Schatztruhe', price: 500, icon: Gem, color: '#7C3AED', category: 'Special', description: 'Enthält ein zufälliges seltenes Item!' },
-  { id: 'level_up_pill', name: 'Level-Sprung', price: 250, icon: Sparkles, color: '#FF00E4', category: 'Buff', description: 'Gibt dir sofort 300 XP auf dein Konto.' },
-  { id: 'coin_pouch', name: 'Blitz-Beutel', price: 50, icon: Zap, color: '#FFD700', category: 'Special', description: 'Enthält zwischen 20 und 150 Blitze.' },
-  { id: 'streak_freeze', name: 'Streak-Retter', price: 75, icon: Shield, color: '#3B82F6', category: 'Buff', description: 'Verhindert den Verlust deines Streaks.' },
+  { id: 'legendary_avatar', name: 'Legendärer Fuchs', price: 100, icon: Ghost, color: '#FF7F24', category: 'Avatar', description: 'Ein mystischer Look für deinen Begleiter.', image: require('../../assets/images/shop/legendary_avatar.png') },
+  { id: 'golden_frame', name: 'Goldener Rahmen', price: 50, icon: Shield, color: '#FFD700', category: 'Style', description: 'Zeige allen deinen Reichtum.', image: require('../../assets/images/shop/golden_frame.png') },
+  { id: 'joker_card', name: 'Joker-Karte', price: 30, icon: Star, color: '#EC4899', category: 'Item', description: 'Überspringe eine Quest ohne XP-Verlust.', image: require('../../assets/images/shop/joker_card.png') },
+  { id: 'neon_theme', name: 'Neon Theme', price: 200, icon: Palette, color: '#00CD00', category: 'Theme', description: 'Die App leuchtet in futuristischen Farben.', image: require('../../assets/images/shop/neon_theme.png') },
+  { id: 'xp_booster', name: 'XP Booster', price: 150, icon: Sparkles, color: '#3B82F6', category: 'Buff', description: 'Doppelte XP für die nächsten 3 Quests.', image: require('../../assets/images/shop/xp_booster.png') },
+  { id: 'coins_booster', name: 'Blitz-Booster', price: 100, icon: Zap, color: '#FF7F24', category: 'Buff', description: 'Mehr Blitze für abgeschlossene Aufgaben.', image: require('../../assets/images/shop/coins_booster.png') },
+  { id: 'streak_shield', name: 'Streak-Schild', price: 75, icon: Flame, color: '#EF4444', category: 'Item', description: 'Schützt deinen Streak für einen Tag.', image: require('../../assets/images/shop/streak_shield.png') },
+  { id: 'treasure_chest', name: 'Schatztruhe', price: 500, icon: Gem, color: '#7C3AED', category: 'Special', description: 'Enthält ein zufälliges seltenes Item!', image: require('../../assets/images/shop/treasure_chest.png') },
+  { id: 'level_up_pill', name: 'Level-Sprung', price: 250, icon: Sparkles, color: '#FF00E4', category: 'Buff', description: 'Gibt dir sofort 300 XP auf dein Konto.', image: require('../../assets/images/shop/level_up_pill.png') },
+  { id: 'coin_pouch', name: 'Blitz-Beutel', price: 50, icon: Zap, color: '#FFD700', category: 'Special', description: 'Enthält zwischen 20 und 150 Blitze.', image: require('../../assets/images/shop/coin_pouch.png') },
+  { id: 'streak_freeze', name: 'Streak-Retter', price: 75, icon: Shield, color: '#3B82F6', category: 'Buff', description: 'Verhindert den Verlust deines Streaks.', image: require('../../assets/images/shop/streak_freeze.png') },
 ];
 
 export default function Shop() {
@@ -99,7 +100,11 @@ export default function Shop() {
         activeOpacity={0.7}
       >
         <View style={[s.iconContainer, { backgroundColor: `${item.color}20` }]}>
-          <IconComponent color={item.color} size={32} />
+          {item.image ? (
+            <Image source={item.image} style={s.itemImage} resizeMode="contain" />
+          ) : (
+            <IconComponent color={item.color} size={32} />
+          )}
           {ownedItem && item.category !== 'Avatar' && (
             <View style={s.ownedBadge}>
               <Text style={s.ownedBadgeText}>×{ownedItem.quantity}</Text>
@@ -214,6 +219,7 @@ const stylesLight = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
+  itemImage: { width: 48, height: 48 },
   ownedBadge: {
     position: 'absolute',
     top: -4,
@@ -294,6 +300,7 @@ const stylesDark = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
+  itemImage: { width: 48, height: 48 },
   ownedBadge: {
     position: 'absolute',
     top: -4,
